@@ -1,0 +1,146 @@
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Headings */
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+/* Buttons */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+/* Reveal on scroll */
+.reveal { opacity: 0; transform: translateY(14px); transition: all .45s ease; }
+.reveal-in { opacity: 1; transform: translateY(0); }
+
+/* Container - updated to allow full width sections */
+.container {
+  width: 100%;
+  max-width: 1600px;  /* increase width so features can stretch */
+  margin: 0 auto;
+  padding: 0 32px;    /* side padding */
+  box-sizing: border-box;
+}
+
+/* Grid helpers */
+.grid {
+  display: grid;
+  gap: 20px;
+}
+
+/* Responsive rules */
+@media (min-width:1200px) {
+  .grid.six-col { grid-template-columns: repeat(6, 1fr); }
+}
+@media (max-width:1199px) and (min-width:800px) {
+  .grid.six-col { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width:799px) and (min-width:520px) {
+  .grid.six-col { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width:519px) {
+  .grid.six-col { grid-template-columns: 1fr; }
+}
+
+/* Hero background */
+.hero-min {
+  background:
+    radial-gradient(circle at 20% 20%, #dbeafe 0, transparent 40%),
+    radial-gradient(circle at 80% 0, #e0e7ff 0, transparent 50%),
+    #ffffff;
+}
+/* ---------- MOBILE LAYOUT ---------- */
+@media (max-width: 768px) {
+  /* Why Saka one per row, image left text right */
+  .feature-card {
+    flex-direction: row !important;
+    height: auto !important;
+    padding: 12px !important;
+    border: none !important;
+  }
+  .feature-card img {
+    width: 80px !important;
+    height: 80px !important;
+    object-fit: contain;
+    margin-right: 12px;
+  }
+  .feature-text {
+    text-align: left !important;
+  }
+
+  /* Team one per row, image left name right */
+  .team-card {
+    flex-direction: row !important;
+    height: auto !important;
+    justify-content: flex-start !important;
+    padding: 12px !important;
+    border: none !important;
+  }
+  .team-card div:first-child {
+    margin: 0 12px 0 0 !important;
+    width: 80px !important;
+    height: 80px !important;
+  }
+  .team-card h4, .team-card p {
+    text-align: left !important;
+  }
+}

@@ -1,0 +1,236 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+/* ===== Pro Splash ===== */
+.splash-pro {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at top left, #22c55e, transparent 60%),
+              radial-gradient(circle at bottom right, #06b6d4, transparent 60%),
+              linear-gradient(135deg, #0f172a, #1e293b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 9999;
+  transition: opacity 0.6s ease;
+}
+
+/* Fade out */
+.splash-out .splash-pro {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Floating particles */
+.splash-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 50%;
+  animation: floatUp 6s linear infinite;
+}
+.splash-particle:nth-child(2) { left: 20%; animation-duration: 7s; }
+.splash-particle:nth-child(3) { left: 40%; animation-duration: 8s; }
+.splash-particle:nth-child(4) { left: 60%; animation-duration: 5s; }
+.splash-particle:nth-child(5) { left: 80%; animation-duration: 9s; }
+.splash-particle:nth-child(6) { left: 10%; animation-duration: 10s; }
+.splash-particle:nth-child(7) { left: 30%; animation-duration: 11s; }
+.splash-particle:nth-child(8) { left: 50%; animation-duration: 12s; }
+.splash-particle:nth-child(9) { left: 70%; animation-duration: 13s; }
+.splash-particle:nth-child(10){ left: 90%; animation-duration: 14s; }
+
+@keyframes floatUp {
+  from { top: 100%; opacity: 0; transform: scale(0.6); }
+  20%  { opacity: 1; }
+  to   { top: -10%; opacity: 0; transform: scale(1.2); }
+}
+
+/* Content */
+.splash-content {
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 4px 30px rgba(0,0,0,0.4);
+  z-index: 2;
+}
+
+/* Big SAKA */
+.splash-brand {
+  font-size: clamp(48px, 12vw, 96px);
+  font-weight: 900;
+  letter-spacing: .12em;
+  margin: 0;
+  background: linear-gradient(90deg,#4ade80,#22d3ee,#818cf8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: zoomGlow 1s ease forwards;
+}
+
+@keyframes zoomGlow {
+  from { opacity: 0; transform: scale(.8); filter: blur(6px); }
+  to   { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+/* Tagline */
+.splash-tagline {
+  margin-top: 12px;
+  font-size: clamp(14px, 3.5vw, 22px);
+  font-weight: 600;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.8s forwards;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Progress bar */
+.splash-bar {
+  margin: 24px auto 0;
+  width: 200px;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.2);
+  overflow: hidden;
+}
+.splash-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg,#22c55e,#06b6d4,#818cf8);
+  border-radius: 9999px;
+  animation: loadFill 2.2s ease forwards;
+}
+@keyframes loadFill {
+  to { width: 100%; }
+}
+/* Splash screen */
+.splash-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: white; /* or gradient */
+  z-index: 9999;
+  animation: fadeOut 0.8s ease forwards;
+  animation-delay: 2.2s;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Logo animation */
+.splash-logo {
+  width: 220px;
+  height: auto;
+  opacity: 0;
+  transform: scale(0.7);
+  animation: zoomIn 1.4s ease forwards;
+}
+
+/* Tagline animation */
+.splash-tagline {
+  margin-top: 12px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #0077b6; /* nice blue */
+  opacity: 0;
+  animation: fadeInUp 1.2s ease forwards;
+  animation-delay: 0.8s;
+}
+
+/* Keyframes */
+@keyframes zoomIn {
+  0% { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  to { opacity: 0; visibility: hidden; }
+}
+/* --- NAV RESPONSIVE FIX --- */
+
+/* Default: desktop/tablet */
+.menu { display: flex; gap: 20px; align-items: center; }
+.burger { display: none; } /* hide burger by default on larger screens */
+
+/* Mobile: < 768px */
+@media (max-width: 767.98px) {
+  .menu { display: none; }  /* hide desktop menu */
+  .burger { 
+    display: grid;          /* show burger only on mobile */
+    background: none; border: 0; width: 40px; height: 40px; place-items: center; cursor: pointer;
+  }
+  .burger span, .burger::before, .burger::after {
+    content: ""; display: block; width: 22px; height: 2px; background: var(--text); transition: .2s ease;
+  }
+  .burger::before { transform: translateY(-6px); }
+  .burger::after  { transform: translateY(6px); }
+
+  .drawer { display: block; } /* your drawer container becomes usable on mobile */
+}
+/* Make the app take full height */
+html, body, #root { height: 100%; }
+
+/* Ensure the main content always fills the viewport minus header/footer */
+main { min-height: calc(100vh - 64px - 72px); } /* adjust heights if your header/footer differ */
+
+/* Optional: full-bleed sections if you want edge-to-edge backgrounds */
+.section--fullbleed {
+  padding: 0;
+}
+.section--fullbleed > .container {
+  max-width: none; padding-inline: 0;
+}
+.hero-min {
+  background: linear-gradient(180deg,#f9fbff 0%, #ffffff 100%);
+}

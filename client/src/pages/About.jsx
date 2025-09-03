@@ -5,8 +5,8 @@ const team = [
   { name: "ESWAR", role: "Founder & CEO", photo: "/services/eswar.jpg" },
   { name: "SUDHEER", role: "Operations Head", photo: "/services/sudheer.jpg" },
   { name: "NARAYANA", role: "Team management", photo: "/services/narayanaimage.jpg" },
-  { name: "VEERABABU", role: "Sales & Marketing", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop" },
-  { name: "VARUN", role: "Developer & IT Specialist", photo: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?q=80&w=400&auto=format&fit=crop" },
+  { name: "VEERABABU", role: "Sales & Marketing", photo: "/services/veerababu.jpg" },
+  { name: "VARUN", role: "Developer & IT Specialist", photo: "/services/varunimage.jpg" },
 ];
 
 const features = [

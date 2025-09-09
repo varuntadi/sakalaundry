@@ -12,7 +12,7 @@ export default function ContactUs() {
           <p><a href="tel:+919121991113" style={{ color: "inherit", textDecoration: "none" }}>+91 98765 43210</a></p>
 
           <h3>✉️ Email</h3>
-          <p><a href="mailto:sakafreshwash@gmail.com" style={{ color: "inherit", textDecoration: "none" }}>info@sakalaundry.com</a></p>
+          <p><a href="mailto:sakafreshwash@gmail.com" style={{ color: "inherit", textDecoration: "none" }}>sakafreshwash@gmail.com"</a></p>
 
           <h3>📍 Address</h3>
           <p>123, kakinada,<br />banugudi</p>

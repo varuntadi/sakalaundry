@@ -10,33 +10,61 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+/* ----------------- Middlewares ----------------- */
+// parse JSON bodies (place before routes)
 app.use(express.json());
 
-// 🔰 Graceful error if body JSON is invalid
+// catch invalid JSON in request body early and return 400
 app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && "body" in err) {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
     return res.status(400).json({ error: "Invalid JSON in request body" });
   }
   next();
 });
 
-// 🧭 show which folder is running
-console.log("🧭 process.cwd() =", process.cwd());
+// allow CORS - use a whitelist for production
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // e.g. https://saka.netlify.app (set in Render)
+  // add more origins if needed
+].filter(Boolean);
 
-// 🔎 log every request
+if (allowedOrigins.length > 0) {
+  app.use(
+    cors({
+      origin: (origin, cb) => {
+        // allow non-browser requests (e.g. Postman) which have no origin
+        if (!origin) return cb(null, true);
+        if (allowedOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error("CORS: This origin is not allowed"), false);
+      },
+      credentials: true,
+    })
+  );
+} else {
+  // development fallback: allow all origins if FRONTEND_URL not set
+  app.use(cors());
+}
+
+// simple request logger
 app.use((req, res, next) => {
   console.log("➡", req.method, req.url);
   next();
 });
 
-// ✅ MongoDB Connection
+/* ----------------- DB ----------------- */
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGO_URI, {
+    // options are optional with mongoose v8+, but included for clarity
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1); // stop process if DB connection fails (optional)
+  });
 
-// ✅ User Schema + Model (with role)
+/* ----------------- Models ----------------- */
 const userSchema = new mongoose.Schema(
   {
     name: String,
@@ -48,7 +76,6 @@ const userSchema = new mongoose.Schema(
 );
 const User = mongoose.model("User", userSchema);
 
-// 🧺 Order Schema + Model (with pickup details)
 const orderSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -66,7 +93,7 @@ const orderSchema = new mongoose.Schema(
 );
 const Order = mongoose.model("Order", orderSchema);
 
-// 🔐 JWT auth middleware
+/* ----------------- Auth helpers ----------------- */
 function auth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
@@ -81,7 +108,6 @@ function auth(req, res, next) {
   }
 }
 
-// 👑 Admin-only guard
 function adminOnly(req, res, next) {
   if (req.user?.role !== "admin") {
     return res.status(403).json({ error: "Admin only" });
@@ -89,20 +115,13 @@ function adminOnly(req, res, next) {
   next();
 }
 
-// 🧪 sanity route
-app.post("/signup-test", (req, res) => {
-  return res.json({ ok: true, msg: "POST /signup-test reached the server 👍" });
-});
+/* ----------------- Routes ----------------- */
+app.post("/signup-test", (req, res) => res.json({ ok: true, msg: "POST /signup-test reached the server 👍" }));
 
-console.log("✅ Signup route is loaded in index.js");
-
-// ✅ Signup
 app.post("/signup", async (req, res) => {
-  console.log("📩 /signup route was hit with data:", req.body);
   try {
     const { name, email, password } = req.body;
-    if (!name || !email || !password)
-      return res.status(400).json({ error: "All fields are required" });
+    if (!name || !email || !password) return res.status(400).json({ error: "All fields are required" });
 
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: "Email already exists" });
@@ -113,20 +132,16 @@ app.post("/signup", async (req, res) => {
 
     return res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    if (err?.code === 11000) {
-      return res.status(409).json({ error: "Email already exists" });
-    }
+    if (err?.code === 11000) return res.status(409).json({ error: "Email already exists" });
     console.error("❌ /signup error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
 
-// ✅ Login (token includes role)
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: "Email & password required" });
+    if (!email || !password) return res.status(400).json({ error: "Email & password required" });
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -134,12 +149,7 @@ app.post("/login", async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return res.status(401).json({ error: "Invalid password" });
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
     return res.json({ message: "Login successful", token });
   } catch (err) {
     console.error("❌ /login error:", err);
@@ -147,16 +157,12 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// 👤 Profile (protected)
 app.get("/profile", auth, async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");
   if (!user) return res.status(404).json({ error: "User not found" });
   res.json(user);
 });
 
-/* ---------- USER ORDER ROUTES (no status update) ---------- */
-
-// ➕ Create order (protected)
 app.post("/orders", auth, async (req, res) => {
   const { service, pickupAddress, phone, notes } = req.body;
   if (!service) return res.status(400).json({ error: "Service is required" });
@@ -172,36 +178,26 @@ app.post("/orders", auth, async (req, res) => {
   res.status(201).json(order);
 });
 
-// 📄 List my orders (protected)
 app.get("/orders", auth, async (req, res) => {
   const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
   res.json(orders);
 });
 
-// ❌ Cancel my order (protected)
 app.delete("/orders/:id", auth, async (req, res) => {
   const order = await Order.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
   if (!order) return res.status(404).json({ error: "Order not found" });
   res.json({ message: "Order canceled" });
 });
 
-/* ---------- ADMIN ROUTES ---------- */
-
-// 👑 Admin: list all orders
 app.get("/admin/orders", auth, adminOnly, async (req, res) => {
-  const orders = await Order.find()
-    .populate("userId", "name email")
-    .sort({ createdAt: -1 });
+  const orders = await Order.find().populate("userId", "name email").sort({ createdAt: -1 });
   res.json(orders);
 });
 
-// 👑 Admin: update any order status
 app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
   const { status } = req.body;
   const allowed = ["Pending", "In Progress", "Completed"];
-  if (!allowed.includes(status)) {
-    return res.status(400).json({ error: `Status must be one of: ${allowed.join(", ")}` });
-  }
+  if (!allowed.includes(status)) return res.status(400).json({ error: `Status must be one of: ${allowed.join(", ")}` });
 
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
@@ -213,12 +209,10 @@ app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
   res.json(updated);
 });
 
-// ✅ Test Route
-app.get("/", (req, res) => {
-  res.send("🚀 API is running...");
-});
+app.get("/", (req, res) => res.send("🚀 API is running..."));
 
-// ✅ Start Server — updated for network access
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on http://10.21.115.69:${PORT}`);
+/* ----------------- Start server ----------------- */
+// Bind to 0.0.0.0 for container/host networking compatibility
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
 });

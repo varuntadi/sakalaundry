@@ -1000,3 +1000,9 @@ a[aria-label="Chat on WhatsApp"]:hover {
   font-size: 1rem;
   opacity: 0.8;
 }
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block; /* removes extra spacing */
+}

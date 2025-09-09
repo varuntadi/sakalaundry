@@ -1,247 +1,144 @@
 import React, { useEffect, useRef, useState } from "react";
 
-/* ---------- TEAM & FEATURES ---------- */
+/* ---------- TEAM DATA ---------- */
 const team = [
-  { name: "ESWAR", role: "Founder & CEO", photo: "/services/eswar.jpg" },
-  { name: "SUDHEER", role: "Operations Head", photo: "/services/sudheer.jpg" },
-  { name: "NARAYANA", role: "Team management", photo: "/services/narayanaimage.jpg" },
-  { name: "VEERABABU", role: "Sales & Marketing", photo: "/services/veerababu.jpg" },
-  { name: "VARUN", role: "Developer & IT Specialist", photo: "/services/varunimage.jpg" },
+  {
+    name: "ESWAR",
+    role: "Founder & CEO",
+    photo: "/services/eswar.jpg",
+    bio: "Started Saka to make laundry simple — focuses on operations & partnerships.",
+  },
+  {
+    name: "SUDHEER",
+    role: "Operations Head",
+    photo: "/services/sudheer.jpg",
+    bio: "Makes sure pickups, cleaning and deliveries run like clockwork.",
+  },
+  {
+    name: "NARAYANA",
+    role: "Team Management",
+    photo: "/services/narayanaimage.jpg",
+    bio: "Builds and coaches the on-ground team to deliver excellent customer experience.",
+  },
+  {
+    name: "VEERABABU",
+    role: "Sales & Marketing",
+    photo: "/services/veerababu.jpg",
+    bio: "Gets the word out and helps customers discover our services.",
+  },
+  {
+    name: "VARUN",
+    role: "Developer & IT Specialist",
+    photo: "/services/varunimage.jpg",
+    bio: "Keeps our web & app experience fast, secure and delightful",
+  },
 ];
 
-const features = [
-  { title: "Doorstep Pickup", desc: "We pick up & deliver on your schedule.", img: "/services/doorstep.png" },
-  { title: "Eco-friendly Care", desc: "Fabric-safe detergents & hygienic wash.", img: "/services/ecofriendly.png" },
-  { title: "Fast Turnaround", desc: "Same-day / next-day options.", img: "/services/turnaround.png" },
-  { title: "Live Tracking", desc: "Know your order status in real time.", img: "/services/live.png" },
-  { title: "Affordable Pricing", desc: "Transparent & budget-friendly plans.", img: "/services/afordable.png" },
-  { title: "Premium Care", desc: "Special handling for delicate & luxury fabrics.", img: "/services/premium.png" },
-];
-
-const steps = [
-  { n: 1, title: "Book", text: "Choose service, time & address." },
-  { n: 2, title: "Pickup", text: "Our rider collects your laundry." },
-  { n: 3, title: "Clean", text: "Professionally washed & ironed." },
-  { n: 4, title: "Deliver", text: "Fresh clothes back at your door." },
-];
-
-/* ---------- HERO SLIDES ---------- */
-const slides = ["/services/sakavanbike.png", "/services/s.png", "/services/ss.png", "/services/gg.png"];
-
-function useLoadedSlides(srcs = []) {
-  const [loaded, setLoaded] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all(
-      srcs.map(
-        (src) =>
-          new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(src);
-            img.onerror = () => resolve(null);
-            img.src = src;
-          })
-      )
-    ).then((arr) => {
-      if (!cancelled) setLoaded(arr.filter(Boolean));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [srcs]);
-  return loaded;
-}
-
-const FIT_MODE = "cover";
-
+/* ---------- COMPONENT ---------- */
 export default function About() {
   const revealRef = useRef([]);
-  const [idx, setIdx] = useState(0);
-
-  const loadedSlides = useLoadedSlides(slides);
-  const activeSlides = loadedSlides.length ? loadedSlides : slides;
+  const [pressed, setPressed] = useState(-1);
 
   useEffect(() => {
     const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add("reveal-in")),
-      { threshold: 0.15 }
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("reveal-in");
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
     );
     revealRef.current.forEach((el) => el && io.observe(el));
     return () => io.disconnect();
   }, []);
 
+  function handlePress(i) {
+    setPressed(i);
+    setTimeout(() => setPressed(-1), 220);
+  }
+
+  // inject CSS once
   useEffect(() => {
-    if (!activeSlides.length) return;
-    const id = setInterval(() => setIdx((n) => (n + 1) % activeSlides.length), 4000);
-    return () => clearInterval(id);
-  }, [activeSlides.length]);
+    if (document.getElementById("about-page-styles")) return;
+    const el = document.createElement("style");
+    el.id = "about-page-styles";
+    el.innerHTML = styles;
+    document.head.appendChild(el);
+  }, []);
 
   return (
-    <div className="about-page" style={{ overflowX: "hidden" }}>
-      {/* ---------- HERO ---------- */}
-      <section
-        className="about-hero full-bleed"
-        style={{
-          position: "relative",
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          overflow: "hidden",
-          color: "#fff",
-          backgroundColor: "#0b1220",
-        }}
-      >
-        {activeSlides.map((src, i) => (
-          <img
-            key={src + i}
-            src={src}
-            alt=""
-            aria-hidden="true"
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: FIT_MODE,
-              objectPosition: "center",
-              opacity: i === idx ? 1 : 0,
-              transition: "opacity 900ms ease-in-out",
-              willChange: "opacity",
-            }}
-          />
-        ))}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.35))",
-          }}
-        />
-        <div
-          style={{
-            position: "relative",
-            zIndex: 1,
-            textAlign: "center",
-            padding: "2.5rem 1rem",
-            maxWidth: 900,
-          }}
-        >
-          <h1 style={{ fontSize: "clamp(2rem,4.5vw,3rem)", marginBottom: 6 }}>About Saka Laundry</h1>
-          <p style={{ opacity: 0.96 }}>
-            Fresh clothes. Zero hassle. Doorstep pickup, eco-friendly cleaning, and on-time delivery—so your week stays
-            light book a pickup regular/express delivery are available.
+    <div className="about-page">
+      {/* HERO */}
+      <section className="about-hero">
+        <div className="hero-inner">
+          <h1 className="hero-title">Meet Our Leadership Team</h1>
+          <p className="hero-sub">
+            Passionate people driving Saka Laundry forward with innovation and trust.
           </p>
-          <div
-            style={{
-              marginTop: 12,
-              display: "flex",
-              gap: 10,
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={pillStyle}><b>10k+</b>&nbsp;orders</div>
-            <div style={pillStyle}><b>4.8★</b>&nbsp;rating</div>
-            <div style={pillStyle}><b>24h</b>&nbsp;turnaround</div>
-          </div>
         </div>
       </section>
 
-      {/* ---------- FEATURES (Why Saka) ---------- */}
-      <div style={{ width: "100%", padding: "40px 16px" }}>
-        <h2 className="section-title" style={{ textAlign: "center" }}>Why Saka</h2>
-        <p className="helper" style={{ textAlign: "center", marginBottom: 24 }}>
-          Everything you expect from a modern laundry—done right.
-        </p>
-
-        <div
-          className="grid reveal why-saka-grid"
-          ref={(el) => (revealRef.current[1] = el)}
-        >
-          {features.map((f, i) => (
-            <div key={i} className="feature-card why-saka-card">
-              <div className="feature-img">
-                <img src={f.img} alt={f.title} loading="lazy" />
-              </div>
-              <div className="feature-text">
-                <h4>{f.title}</h4>
-                <p className="helper">{f.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ---------- PROCESS STEPS ---------- */}
-      <div
-        className="reveal"
-        ref={(el) => (revealRef.current[2] = el)}
-        style={{
-          background: "#f0f6ff",
-          borderTop: "1px solid #e6efff",
-          borderBottom: "1px solid #e6efff",
-          padding: "16px 0",
-          marginTop: 8,
-        }}
+      {/* ABOUT */}
+      <section
+        className="about-model reveal"
+        ref={(el) => (revealRef.current[0] = el)}
       >
-        <div className="container steps-grid">
-          {steps.map((s) => (
-            <div className="card" key={s.n} style={{ textAlign: "center" }}>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  display: "grid",
-                  placeItems: "center",
-                  margin: "0 auto 6px",
-                  background: "#2f7cff",
-                  color: "#fff",
-                  fontWeight: 700,
-                }}
+        <div className="model-card">
+          <h2>About Saka Laundry</h2>
+          <p>
+            We started with one goal — to make laundry stress-free. With{" "}
+            <strong>doorstep pickup, eco-friendly cleaning, and reliable delivery</strong>, 
+            we save time so our customers can focus on what truly matters.
+          </p>
+          <a className="btn-primary" href="tel:+919121991113">
+            Book a Pickup
+          </a>
+        </div>
+      </section>
+
+      {/* TEAM */}
+      <div className="team-section">
+        <div className="team-full">
+          <div
+            className="team-grid reveal"
+            ref={(el) => (revealRef.current[1] = el)}
+          >
+            {team.map((m, i) => (
+              <article
+                key={i}
+                className={`team-card ${pressed === i ? "pressed" : ""}`}
+                style={{ ["--i"]: i }}
               >
-                {s.n}
-              </div>
-              <h4>{s.title}</h4>
-              <p className="helper">{s.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+                <div className="card-top">
+                  <button
+                    className="avatar-btn"
+                    onClick={() => handlePress(i)}
+                    aria-label={`Press ${m.name}`}
+                  >
+                    <span className="avatar-inner">
+                      <img
+                        src={m.photo}
+                        alt={m.name}
+                        className="avatar-img"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <span className="avatar-shine" aria-hidden />
+                    </span>
+                  </button>
+                </div>
 
-      {/* ---------- TEAM ---------- */}
-      <div style={{ width: "100%", padding: "40px 16px" }}>
-        <h2 className="section-title" style={{ textAlign: "center" }}>Meet the Team</h2>
-        <p className="helper" style={{ textAlign: "center", marginBottom: 24 }}>
-          The people making Saka Laundry fast, friendly, and dependable.
-        </p>
-
-        <div
-          className="team-grid reveal"
-          ref={(el) => (revealRef.current[3] = el)}
-        >
-          {team.map((m, i) => (
-            <div key={i} className="team-card">
-              <div className="team-img">
-                <img src={m.photo} alt={m.name} loading="lazy" />
-              </div>
-              <div className="team-text">
-                <h4>{m.name}</h4>
-                <p className="helper">{m.role}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ---------- CTA ---------- */}
-      <div className="container" style={{ marginBottom: 24 }}>
-        <div className="card" style={{ display: "flex", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <h3>Ready to skip laundry this week?</h3>
-            <p className="helper">Book a pickup now and get your first wash at a special price.</p>
+                <div className="team-info">
+                  <h3 className="member-name">{m.name}</h3>
+                  <div className="member-role">{m.role}</div>
+                  <p className="bio">{m.bio}</p>
+                </div>
+              </article>
+            ))}
           </div>
-          <a href="/order" className="btn-primary" style={btnPrimary}>Book Pickup</a>
         </div>
       </div>
     </div>
@@ -249,19 +146,73 @@ export default function About() {
 }
 
 /* ---------- STYLES ---------- */
-const pillStyle = {
-  background: "rgba(255,255,255,.12)",
-  border: "1px solid rgba(255,255,255,.25)",
-  padding: ".6rem .8rem",
-  borderRadius: 12,
-};
+const styles = `
+:root {
+  --accent: #2f7cff;
+  --accent-2: #7b46ff;
+  --muted: #616b78;
+  --bg: #f6f8fb;
+  --card-radius: 14px;
+  --gap: 28px;
+  --avatar-lg: 180px;
+  --avatar-md: 160px;
+  --avatar-mobile: 180px;
+}
 
-const btnPrimary = {
-  textDecoration: "none",
-  background: "#2f7cff",
-  color: "#fff",
-  padding: "10px 16px",
-  borderRadius: 10,
-  fontWeight: 600,
-  border: "1px solid #0b4fd6",
-};
+/* HERO */
+.about-hero { text-align:center; padding:40px 16px; }
+.hero-title {
+  font-size:clamp(1.8rem,3.6vw,2.6rem); font-weight:900;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hero-sub { margin-top:12px; color:var(--muted); }
+
+/* ABOUT */
+.about-model { display:grid; place-items:center; padding:20px 16px; }
+.model-card { background:#fff; border-radius:16px; padding:24px; max-width:850px; text-align:center; }
+.btn-primary { background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; padding:10px 16px; border-radius:10px; font-weight:700; text-decoration:none; display:inline-block; }
+
+/* TEAM GRID */
+.team-section { padding:28px 0 64px; }
+.team-full { width:100%; max-width:1200px; margin:0 auto; padding:0 16px; }
+.team-grid {
+  display:grid; gap:var(--gap);
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  grid-auto-rows:1fr; /* ensures equal height rows */
+}
+@media(min-width:1200px){
+  .team-full { max-width:none; padding:0; }
+  .team-grid { grid-template-columns:repeat(5,1fr); gap:32px; }
+}
+
+/* CARD */
+.team-card {
+  background:#fff; border-radius:var(--card-radius);
+  padding:22px; display:flex; flex-direction:column;
+  align-items:center; justify-content:space-between;
+  height:100%; /* stretch to equal height */
+  text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.05);
+  transition:transform .25s, box-shadow .25s;
+}
+.team-card:hover { transform:translateY(-8px) scale(1.02); box-shadow:0 20px 60px rgba(0,0,0,0.12); }
+
+/* AVATAR */
+.avatar-btn { width:var(--avatar-lg); height:var(--avatar-lg); border-radius:50%; overflow:hidden;
+  border:4px solid #f2f2f2; box-shadow:0 12px 30px rgba(2,6,23,0.08); position:relative; background:#fff; }
+.avatar-img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.avatar-shine { position:absolute; inset:0; background:linear-gradient(120deg,rgba(255,255,255,0) 0%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0) 100%); transform:translateX(-100%); transition:transform .6s; }
+.avatar-btn:hover .avatar-shine { transform:translateX(100%); }
+
+/* TEXT */
+.member-name { font-weight:800; margin:6px 0 4px; }
+.member-role { color:var(--accent); font-weight:700; margin-bottom:8px; }
+.bio { color:var(--muted); font-size:.95rem; }
+
+/* MOBILE */
+@media(max-width:1000px){ .avatar-btn{ width:var(--avatar-md); height:var(--avatar-md);} }
+@media(max-width:640px){
+  .team-grid{ grid-template-columns:1fr; gap:20px; }
+  .avatar-btn{ width:var(--avatar-mobile); height:var(--avatar-mobile);}
+}
+`;

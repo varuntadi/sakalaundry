@@ -1,6 +1,6 @@
+// src/pages/login.jsx
 import React, { useState } from "react";
 import api from "../api";
-import { auth } from "../auth";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function Login() {
@@ -30,13 +30,30 @@ export default function Login() {
     setMsg({ type: "", text: "" });
     if (!validate()) return;
     setLoading(true);
+
     try {
+      // Adjust endpoint path if your backend uses /auth/login
       const res = await api.post("/login", form);
-      auth.token = res.data?.token;
-      setMsg({ type: "ok", text: "Welcome back! 🎉 Redirecting…" });
-      nav("/orders");
-    } catch (e) {
-      setMsg({ type: "err", text: e?.response?.data?.error || "Login failed" });
+
+      // Save token and a client-side expiry timestamp (7 days)
+      const token = res.data?.token || res.data?.accessToken || res.data?.data?.token;
+      if (token) {
+        try {
+          localStorage.setItem("token", token);
+          // 7 days in milliseconds
+          const expiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
+          localStorage.setItem("authExpiry", String(expiry));
+        } catch (storageErr) {
+          console.warn("Could not write auth info to localStorage", storageErr);
+        }
+      }
+
+      setMsg({ type: "ok", text: "Welcome back! Redirecting…" });
+      nav("/orders", { replace: true });
+    } catch (err) {
+      const serverMsg = err?.response?.data?.error || err?.response?.data || err.message;
+      setMsg({ type: "err", text: serverMsg || "Login failed" });
+      console.error("Login error:", err?.response || err);
     } finally {
       setLoading(false);
     }
@@ -45,7 +62,6 @@ export default function Login() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
-        {/* Header */}
         <div className="auth-head">
           <div className="auth-logo">S</div>
           <div>
@@ -54,7 +70,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Form */}
         <form className="auth-form" onSubmit={onLogin}>
           <label className="auth-field">
             <span>Email</span>
@@ -103,7 +118,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Footer */}
         <p className="auth-foot">
           New here? <Link to="/signup">Create an account</Link>
         </p>

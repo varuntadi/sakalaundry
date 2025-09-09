@@ -1,66 +1,88 @@
-import React, { useState } from "react";
+// src/components/nav.jsx
+import React, { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { auth } from "../auth";
-import logo from "../assets/sakalogo.jpg"; // ✅ make sure logo is inside src/assets
+import logo from "../assets/sakalogo.jpg";
+import "../styles/theme.css"; // single global theme file
 
 export default function Nav() {
   const nav = useNavigate();
   const isLoggedIn = !!auth.isLoggedIn;
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const panelRef = useRef(null);
 
-  const [isMenuOpen, setMenuOpen] = useState(false);
+  const menuItems = [
+    { name: "Home", to: "/" },
+    { name: "About Us", to: "/about" },
+    { name: "Contact", to: "/contact" },
+    { name: "Admin", to: "/admin" },
+  ];
 
-  const handleLinkClick = () => setMenuOpen(false);
+  // Close on Escape
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") setIsMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Prevent body scroll while menu open
+  useEffect(() => {
+    document.body.style.overflow = isMenuOpen ? "hidden" : "";
+    return () => (document.body.style.overflow = "");
+  }, [isMenuOpen]);
+
+  // Close when clicking outside panel (backdrop) — only active while open
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const onClick = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("touchstart", onClick);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("touchstart", onClick);
+    };
+  }, [isMenuOpen]);
+
+  const handleLinkClick = () => setIsMenuOpen(false);
+
+  const activeStyle = ({ isActive }) => ({
+    color: isActive ? "#0b78f6" : "#111",
+    fontWeight: isActive ? 600 : "normal",
+    textDecoration: "none",
+  });
 
   return (
-    <nav
-      style={{
-        position: "sticky", // navbar stays on top
-        top: 0,
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "12px 24px",
-        background: "#fff",
-        borderBottom: "1px solid #eee",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-      }}
-    >
-      {/* Logo + brand */}
-      <Link
-        to="/"
-        style={{
-          textDecoration: "none",
-          fontWeight: "bold",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          color: "#111",
-        }}
-      >
-        <img src={logo} alt="Saka Laundry" style={{ height: 40 }} />
-        <span>SAKA Laundry</span>
+    <nav className="saka-nav">
+      <Link to="/" className="brand" onClick={handleLinkClick}>
+        <img src={logo} alt="Saka Laundry" className="brand-logo" />
+        <span className="brand-text">SAKA Laundry</span>
       </Link>
 
-      {/* Desktop Links */}
-      <div className="desktop-links" style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-        <NavLink to="/about" className="nav-link">About Us</NavLink>
-        <NavLink to="/contact" className="nav-link">Contact</NavLink>
-        <NavLink to="/admin" className="nav-link">Admin</NavLink>
+      <div className="desktop-links">
+        {menuItems.map((m) => (
+          <NavLink key={m.name} to={m.to} style={activeStyle} className="nav-link-desktop">
+            {m.name}
+          </NavLink>
+        ))}
 
-        {/* ✅ Book Order button */}
-        <NavLink 
-          to="/orders" 
-          className="btn-primary" 
-          style={{ padding: "8px 14px", borderRadius: "6px" }}
-        >
+        <NavLink to="/orders" className="btn btn-primary">
           Book Order
         </NavLink>
 
         {!isLoggedIn ? (
           <>
-            <NavLink to="/login" className="nav-link">Login</NavLink>
-            <NavLink to="/signup" className="btn-outline">Signup</NavLink>
+            <NavLink to="/login" style={activeStyle} className="nav-link-desktop">
+              Login
+            </NavLink>
+            <NavLink to="/signup" className="btn btn-outline">
+              Signup
+            </NavLink>
           </>
         ) : (
           <button
@@ -68,81 +90,91 @@ export default function Nav() {
               auth.logout();
               nav("/");
             }}
-            className="nav-link"
-            style={{ border: "none", background: "none", cursor: "pointer" }}
+            className="logout-btn"
+            aria-label="Logout"
           >
             Logout
           </button>
         )}
       </div>
 
-      {/* Hamburger for mobile */}
+      {/* mobile hamburger (button element for accessibility) */}
       <button
-        onClick={() => setMenuOpen(!isMenuOpen)}
-        className="mobile-toggle"
-        style={{
-          display: "none", // hidden by default, CSS will show on mobile
-          background: "none",
-          border: "none",
-          fontSize: 26,
-          cursor: "pointer",
-        }}
+        className={`hamburger ${isMenuOpen ? "open" : ""}`}
+        aria-expanded={isMenuOpen}
+        aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+        onClick={() => setIsMenuOpen((s) => !s)}
+        type="button"
       >
-        ☰
+        <span className="hb-line" />
+        <span className="hb-line" />
+        <span className="hb-line" />
       </button>
 
-      {/* Mobile dropdown */}
+      {/* render backdrop + panel only when open — prevents stray visuals */}
       {isMenuOpen && (
-        <div
-          className="mobile-menu"
-          style={{
-            position: "absolute",
-            top: 64,
-            right: 16,
-            background: "#fff",
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            padding: "12px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          }}
-        >
-          <NavLink to="/about" onClick={handleLinkClick}>About Us</NavLink>
-          <NavLink to="/contact" onClick={handleLinkClick}>Contact</NavLink>
-          <NavLink to="/admin" onClick={handleLinkClick}>Admin</NavLink>
-
-          {/* ✅ Book Order button in mobile menu */}
-          <NavLink 
-            to="/orders" 
-            className="btn-primary" 
-            onClick={handleLinkClick}
-            style={{ padding: "8px 14px", borderRadius: "6px", textAlign: "center" }}
+        <>
+          <div className="mobile-backdrop visible" aria-hidden="true" />
+          <div
+            ref={panelRef}
+            className={`mobile-panel enter`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile menu"
           >
-            Book Order
-          </NavLink>
+            <div className="mobile-panel-inner">
+              <ul className="mobile-menu-list">
+                {menuItems.map((it, idx) => (
+                  <li
+                    key={it.name}
+                    className="mobile-menu-item"
+                    style={{ animationDelay: `${idx * 60}ms` }}
+                    onTouchStart={(e) => e.currentTarget.classList.add("pressed")}
+                    onTouchEnd={(e) => e.currentTarget.classList.remove("pressed")}
+                    onMouseDown={(e) => e.currentTarget.classList.add("pressed")}
+                    onMouseUp={(e) => e.currentTarget.classList.remove("pressed")}
+                  >
+                    <NavLink to={it.to} className="mobile-menu-link" onClick={handleLinkClick}>
+                      {it.name}
+                    </NavLink>
+                  </li>
+                ))}
 
-          {!isLoggedIn ? (
-            <>
-              <NavLink to="/login" onClick={handleLinkClick}>Login</NavLink>
-              <NavLink to="/signup" className="btn-outline" onClick={handleLinkClick}>
-                Signup
-              </NavLink>
-            </>
-          ) : (
-            <button
-              onClick={() => {
-                auth.logout();
-                nav("/");
-                handleLinkClick();
-              }}
-              style={{ border: "none", background: "none", cursor: "pointer" }}
-            >
-              Logout
-            </button>
-          )}
-        </div>
+                <li className="mobile-menu-item" style={{ animationDelay: `${menuItems.length * 60}ms` }}>
+                  <NavLink to="/orders" className="mobile-cta" onClick={handleLinkClick}>
+                    Book Order
+                  </NavLink>
+                </li>
+
+                <li className="mobile-menu-item" style={{ animationDelay: `${(menuItems.length + 1) * 60}ms` }}>
+                  <div className="mobile-auth-row">
+                    {!isLoggedIn ? (
+                      <>
+                        <NavLink to="/login" className="mobile-small-link" onClick={handleLinkClick}>
+                          Login
+                        </NavLink>
+                        <NavLink to="/signup" className="btn btn-outline small" onClick={handleLinkClick}>
+                          Signup
+                        </NavLink>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          auth.logout();
+                          nav("/");
+                          handleLinkClick();
+                        }}
+                        className="mobile-logout"
+                      >
+                        Logout
+                      </button>
+                    )}
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </>
       )}
     </nav>
   );

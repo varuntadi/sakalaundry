@@ -1,39 +1,50 @@
 // client/src/api.js
 import axios from "axios";
 
+/* ----------------- Axios instance ----------------- */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Attach token from localStorage on each request
-api.interceptors.request.use((config) => {
-  try {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
+/* ----------------- Request Interceptor ----------------- */
+// Attach token from localStorage to every request
+api.interceptors.request.use(
+  (config) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (err) {
+      console.warn("⚠️ Could not read token from localStorage:", err);
     }
-  } catch (err) {
-    console.warn("Could not read token from localStorage:", err);
-  }
-  return config;
-});
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Response interceptor: handle 401 Unauthorized
+/* ----------------- Response Interceptor ----------------- */
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     const status = err?.response?.status;
+
     if (status === 401) {
+      console.warn("⚠️ Unauthorized (401) → clearing token & redirecting");
       try {
         localStorage.removeItem("token");
         localStorage.removeItem("authExpiry");
       } catch (e) {
-        console.warn("Could not clear localStorage:", e);
+        console.warn("⚠️ Could not clear localStorage:", e);
       }
-      // Redirect to login with reason flag
+      // Redirect to login with optional query param
       window.location.href = "/login?reason=session_expired";
     }
+
     return Promise.reject(err);
   }
 );

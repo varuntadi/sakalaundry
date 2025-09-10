@@ -1,1 +1,27 @@
-node_modules 
+# dependencies
+node_modules
+client/node_modules
+server/node_modules
+
+# production
+/build
+/dist
+
+# logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env files
+.env
+.env.local
+server/.env
+client/.env
+
+# editor
+.vscode/
+.idea/
+
+# system
+.DS_Store
+Thumbs.db

@@ -56,8 +56,9 @@ const corsOptions = {
 
 // Register CORS BEFORE body parsers so preflight is handled early
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
+// NOTE: removed app.options("*", cors(corsOptions)) because certain path-to-regexp versions
+// throw when registering '*' as a route. The cors middleware above correctly handles preflight.
+ 
 /* ----------------- Middlewares ----------------- */
 // parse JSON bodies (place before routes)
 app.use(express.json());

@@ -1,3 +1,5 @@
+// server/index.js
+// ES module style (matches your current file)
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -22,47 +24,69 @@ app.use((err, req, res, next) => {
   next();
 });
 
-// allow CORS - use a whitelist for production
+// ----------------- CORS (safe, dev + prod friendly) -----------------
+// Allowed origins list: local dev ports + optional FRONTEND_URL (Netlify)
 const allowedOrigins = [
-  process.env.FRONTEND_URL, // e.g. https://saka.netlify.app (set in Render)
-  // add more origins if needed
+  "http://localhost:5173", // Vite default dev server
+  "http://127.0.0.1:5173",
+  "http://localhost:3000", // if you preview build or use CRA
+  process.env.FRONTEND_URL, // set this in Render (production Netlify URL)
 ].filter(Boolean);
 
-if (allowedOrigins.length > 0) {
-  app.use(
-    cors({
-      origin: (origin, cb) => {
-        // allow non-browser requests (e.g. Postman) which have no origin
-        if (!origin) return cb(null, true);
-        if (allowedOrigins.includes(origin)) return cb(null, true);
-        return cb(new Error("CORS: This origin is not allowed"), false);
-      },
-      credentials: true,
-    })
-  );
-} else {
-  // development fallback: allow all origins if FRONTEND_URL not set
-  app.use(cors());
-}
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow non-browser requests (Postman, curl) which send no origin
+      if (!origin) return callback(null, true);
 
-// simple request logger
+      // Block file:// origins gracefully (users double-clicking index.html)
+      if (typeof origin === "string" && origin.startsWith("file://")) {
+        console.warn("Blocked file:// origin. Serve frontend with npm run dev or a static http server.");
+        return callback(null, false);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn("CORS blocked origin:", origin);
+      return callback(null, false);
+    },
+    credentials: true,
+  })
+);
+
+// request logger (simple)
 app.use((req, res, next) => {
   console.log("➡", req.method, req.url);
   next();
 });
 
-/* ----------------- DB ----------------- */
-mongoose
-  .connect(process.env.MONGO_URI, {
-    // options are optional with mongoose v8+, but included for clarity
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1); // stop process if DB connection fails (optional)
+/* ----------------- DB + Server start (dev-tolerant) ----------------- */
+const MONGO_URI = process.env.MONGO_URI || "";
+
+async function startServer() {
+  if (MONGO_URI) {
+    try {
+      // mongoose options are fine without useNewUrlParser/useUnifiedTopology in v8,
+      // but leaving for clarity (they are harmless)
+      await mongoose.connect(MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      console.log("✅ Connected to MongoDB Atlas");
+    } catch (err) {
+      // Log but DO NOT exit — helpful for local dev if DB is not ready
+      console.error("❌ MongoDB connection error (continuing in dev):", err.message || err);
+    }
+  } else {
+    console.warn("⚠️ No MONGO_URI provided — starting server without DB (dev only).");
+  }
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server listening on port ${PORT}`);
   });
+}
 
 /* ----------------- Models ----------------- */
 const userSchema = new mongoose.Schema(
@@ -74,7 +98,7 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-const User = mongoose.model("User", userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 const orderSchema = new mongoose.Schema(
   {
@@ -91,7 +115,7 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-const Order = mongoose.model("Order", orderSchema);
+const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 
 /* ----------------- Auth helpers ----------------- */
 function auth(req, res, next) {
@@ -100,7 +124,7 @@ function auth(req, res, next) {
   if (!token) return res.status(401).json({ error: "No token provided" });
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET); // { id, role }
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = payload;
     next();
   } catch (err) {
@@ -116,8 +140,13 @@ function adminOnly(req, res, next) {
 }
 
 /* ----------------- Routes ----------------- */
+// health
+app.get("/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+
+// test endpoint
 app.post("/signup-test", (req, res) => res.json({ ok: true, msg: "POST /signup-test reached the server 👍" }));
 
+// signup
 app.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -138,6 +167,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+// login
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -157,12 +187,14 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// profile
 app.get("/profile", auth, async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");
   if (!user) return res.status(404).json({ error: "User not found" });
   res.json(user);
 });
 
+// orders
 app.post("/orders", auth, async (req, res) => {
   const { service, pickupAddress, phone, notes } = req.body;
   if (!service) return res.status(400).json({ error: "Service is required" });
@@ -189,6 +221,7 @@ app.delete("/orders/:id", auth, async (req, res) => {
   res.json({ message: "Order canceled" });
 });
 
+// admin routes
 app.get("/admin/orders", auth, adminOnly, async (req, res) => {
   const orders = await Order.find().populate("userId", "name email").sort({ createdAt: -1 });
   res.json(orders);
@@ -209,10 +242,16 @@ app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
   res.json(updated);
 });
 
+/* ----------------- Root ----------------- */
 app.get("/", (req, res) => res.send("🚀 API is running..."));
 
-/* ----------------- Start server ----------------- */
-// Bind to 0.0.0.0 for container/host networking compatibility
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server listening on port ${PORT}`);
+/* ----------------- Start ----------------- */
+startServer();
+
+/* ----------------- Global error handlers (optional helpful) ----------------- */
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
 });

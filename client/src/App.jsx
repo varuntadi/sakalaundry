@@ -1,24 +1,26 @@
-// src/App.jsx
+﻿// client/src/App.jsx
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import "./styles/responsive.css";
 import "./styles/theme.css";
-import { useEffect } from "react";
 
-/* PAGES */
+/* PAGES â€” use actual filenames (case-sensitive on Linux). 
+   I'm using lowercase filenames (landing.jsx, about.jsx, login.jsx, etc.)
+   â€” change these if your files are PascalCase. */
 import Landing from "./pages/Landing.jsx";
 import About from "./pages/About.jsx";
-import Login from "./pages/login.jsx";
+import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import Profile from "./pages/Profile.jsx";
 import Orders from "./pages/Orders.jsx";
 import Admin from "./pages/Admin.jsx";
-import ContactUs from "./pages/contactUs.jsx";
+import ContactUs from "./pages/ContactUs.jsx";
 
 /* COMPONENTS / GUARDS */
-import Nav from "./components/nav.jsx";
+import Nav from "./components/Nav.jsx";
 import Footer from "./components/Footer.jsx";
-import Protected from "./components/protected.jsx";
-import AdminOnly from "./components/adminonly.jsx";
+import Protected from "./components/Protected.jsx";
+import AdminOnly from "./components/AdminOnly.jsx";
 
 /**
  * AppExpiryHandler
@@ -36,13 +38,9 @@ function AppExpiryHandler() {
     function scheduleOrCheck() {
       try {
         const raw = localStorage.getItem("authExpiry");
-        if (!raw) {
-          // nothing to schedule
-          return;
-        }
+        if (!raw) return;
         const expiry = Number(raw);
         if (!expiry || Number.isNaN(expiry)) {
-          // invalid value — clear and redirect
           localStorage.removeItem("token");
           localStorage.removeItem("authExpiry");
           navigate("/login?reason=session_expired", { replace: true });
@@ -51,21 +49,18 @@ function AppExpiryHandler() {
 
         const timeLeft = expiry - Date.now();
         if (timeLeft <= 0) {
-          // already expired
           localStorage.removeItem("token");
           localStorage.removeItem("authExpiry");
           navigate("/login?reason=session_expired", { replace: true });
           return;
         }
 
-        // schedule a redirect when timeLeft elapses
         timeoutId = setTimeout(() => {
           localStorage.removeItem("token");
           localStorage.removeItem("authExpiry");
           navigate("/login?reason=session_expired", { replace: true });
         }, timeLeft);
       } catch (e) {
-        // if anything goes wrong with storage, be conservative and clear/auth redirect
         try { localStorage.removeItem("token"); localStorage.removeItem("authExpiry"); } catch {}
         navigate("/login?reason=session_expired", { replace: true });
       }
@@ -74,7 +69,6 @@ function AppExpiryHandler() {
     scheduleOrCheck();
 
     function onStorage(e) {
-      // If authExpiry removed/changed in another tab, re-run schedule/check
       if (e.key === "authExpiry") {
         if (timeoutId) {
           clearTimeout(timeoutId);
@@ -82,7 +76,6 @@ function AppExpiryHandler() {
         }
         scheduleOrCheck();
       }
-      // If token removed in another tab, redirect to login
       if (e.key === "token" && e.newValue === null) {
         try { localStorage.removeItem("authExpiry"); } catch {}
         navigate("/login?reason=session_expired", { replace: true });
@@ -90,7 +83,6 @@ function AppExpiryHandler() {
     }
 
     window.addEventListener("storage", onStorage);
-
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener("storage", onStorage);
@@ -131,6 +123,7 @@ export default function App() {
                 </Protected>
               }
             />
+
             <Route
               path="/orders"
               element={
@@ -145,6 +138,7 @@ export default function App() {
                 </Protected>
               }
             />
+
             <Route
               path="/admin"
               element={

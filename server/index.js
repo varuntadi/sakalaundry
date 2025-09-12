@@ -1,5 +1,5 @@
 // server/index.js
-// ES module style (matches your current file)
+// ES module style
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -11,6 +11,52 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+/* ----------------- CORS (robust, handles preflight) ----------------- */
+/**
+ * Make sure FRONTEND_URL is set in your Render/host environment to:
+ *   https://sakalaundry.netlify.app
+ *
+ * If FRONTEND_URL is not set, we fall back to the common Netlify URL so
+ * the site still works while you configure environment variables.
+ */
+const FALLBACK_FRONTEND = "https://sakalaundry.netlify.app";
+const frontendUrl = process.env.FRONTEND_URL || FALLBACK_FRONTEND;
+
+// Allowed origins includes local dev hosts and the configured frontend URL
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  frontendUrl,
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow non-browser requests (curl, Postman) which send no origin
+    if (!origin) return callback(null, true);
+
+    // block file:// origins (user opening local file)
+    if (typeof origin === "string" && origin.startsWith("file://")) {
+      console.warn("Blocked file:// origin. Use a local server for dev.");
+      return callback(null, false);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn("CORS blocked origin:", origin);
+    return callback(new Error("CORS not allowed"), false);
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true, // keep true if using cookies or credentials; otherwise false
+};
+
+// Register CORS BEFORE body parsers so preflight is handled early
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 /* ----------------- Middlewares ----------------- */
 // parse JSON bodies (place before routes)
@@ -24,38 +70,6 @@ app.use((err, req, res, next) => {
   next();
 });
 
-// ----------------- CORS (safe, dev + prod friendly) -----------------
-// Allowed origins list: local dev ports + optional FRONTEND_URL (Netlify)
-const allowedOrigins = [
-  "http://localhost:5173", // Vite default dev server
-  "http://127.0.0.1:5173",
-  "http://localhost:3000", // if you preview build or use CRA
-  process.env.FRONTEND_URL, // set this in Render (production Netlify URL)
-].filter(Boolean);
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // allow non-browser requests (Postman, curl) which send no origin
-      if (!origin) return callback(null, true);
-
-      // Block file:// origins gracefully (users double-clicking index.html)
-      if (typeof origin === "string" && origin.startsWith("file://")) {
-        console.warn("Blocked file:// origin. Serve frontend with npm run dev or a static http server.");
-        return callback(null, false);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      console.warn("CORS blocked origin:", origin);
-      return callback(null, false);
-    },
-    credentials: true,
-  })
-);
-
 // request logger (simple)
 app.use((req, res, next) => {
   console.log("➡", req.method, req.url);
@@ -68,15 +82,12 @@ const MONGO_URI = process.env.MONGO_URI || "";
 async function startServer() {
   if (MONGO_URI) {
     try {
-      // mongoose options are fine without useNewUrlParser/useUnifiedTopology in v8,
-      // but leaving for clarity (they are harmless)
       await mongoose.connect(MONGO_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
       console.log("✅ Connected to MongoDB Atlas");
     } catch (err) {
-      // Log but DO NOT exit — helpful for local dev if DB is not ready
       console.error("❌ MongoDB connection error (continuing in dev):", err.message || err);
     }
   } else {
@@ -85,6 +96,7 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server listening on port ${PORT}`);
+    console.log(`➡ Allowed frontend origins: ${allowedOrigins.join(", ")}`);
   });
 }
 

@@ -1,4 +1,4 @@
-// server/index.js
+﻿// server/index.js
 // ES module style
 import express from "express";
 import mongoose from "mongoose";
@@ -73,7 +73,7 @@ app.use((err, req, res, next) => {
 
 // request logger (simple)
 app.use((req, res, next) => {
-  console.log("➡", req.method, req.url);
+  console.log("âž¡", req.method, req.url);
   next();
 });
 
@@ -87,17 +87,17 @@ async function startServer() {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
-      console.log("✅ Connected to MongoDB Atlas");
+      console.log("âœ… Connected to MongoDB Atlas");
     } catch (err) {
-      console.error("❌ MongoDB connection error (continuing in dev):", err.message || err);
+      console.error("âŒ MongoDB connection error (continuing in dev):", err.message || err);
     }
   } else {
-    console.warn("⚠️ No MONGO_URI provided — starting server without DB (dev only).");
+    console.warn("âš ï¸ No MONGO_URI provided â€” starting server without DB (dev only).");
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server listening on port ${PORT}`);
-    console.log(`➡ Allowed frontend origins: ${allowedOrigins.join(", ")}`);
+    console.log(`ðŸš€ Server listening on port ${PORT}`);
+    console.log(`âž¡ Allowed frontend origins: ${allowedOrigins.join(", ")}`);
   });
 }
 
@@ -157,7 +157,7 @@ function adminOnly(req, res, next) {
 app.get("/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
 // test endpoint
-app.post("/signup-test", (req, res) => res.json({ ok: true, msg: "POST /signup-test reached the server 👍" }));
+app.post("/signup-test", (req, res) => res.json({ ok: true, msg: "POST /signup-test reached the server ðŸ‘" }));
 
 // signup
 app.post("/signup", async (req, res) => {
@@ -175,7 +175,7 @@ app.post("/signup", async (req, res) => {
     return res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     if (err?.code === 11000) return res.status(409).json({ error: "Email already exists" });
-    console.error("❌ /signup error:", err);
+    console.error("âŒ /signup error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
@@ -195,7 +195,7 @@ app.post("/login", async (req, res) => {
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
     return res.json({ message: "Login successful", token });
   } catch (err) {
-    console.error("❌ /login error:", err);
+    console.error("âŒ /login error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
@@ -256,7 +256,7 @@ app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
 });
 
 /* ----------------- Root ----------------- */
-app.get("/", (req, res) => res.send("🚀 API is running..."));
+app.get("/", (req, res) => res.send("ðŸš€ API is running..."));
 
 /* ----------------- Start ----------------- */
 startServer();

@@ -1,0 +1,160 @@
+/* admin.css - KPI, badges, grid, orders list, search, responsive */
+
+/* Container */
+.admin-container,
+.container.admin {
+  max-width: 1200px;
+  margin: 18px auto;
+  padding: 12px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  color: #0f172a;
+}
+
+/* Top row */
+.admin-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.admin-top h2 { margin: 0; font-size: 20px; }
+.admin-actions { display:flex; gap:8px; align-items:center; }
+
+/* Search */
+.admin-search {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e6eef6;
+  min-width: 260px;
+  font-size: 14px;
+  outline: none;
+}
+.admin-search:focus { box-shadow: 0 6px 18px rgba(37,99,235,0.08); }
+
+/* KPI row */
+.kpi-row, .kpis {
+  display:flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.kpi {
+  flex: 1 1 160px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: #fff;
+  min-height: 64px;
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+}
+.kpi-title { font-size: 13px; opacity: 0.95; }
+.kpi-value { font-weight: 700; font-size: 18px; margin-top: 6px; }
+
+/* KPI colors */
+.kpi-blue { background: linear-gradient(90deg,#2563eb,#60a5fa); }
+.kpi-amber { background: linear-gradient(90deg,#f59e0b,#f59e0b); color:#111; }
+.kpi-cyan { background: linear-gradient(90deg,#06b6d4,#67e8f9); color:#042b2d; }
+.kpi-purple { background: linear-gradient(90deg,#a855f7,#9333ea); }
+.kpi-green { background: linear-gradient(90deg,#22c55e,#86efac); color:#05260a; }
+
+/* Cards / charts grid */
+.charts-grid, .grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 16px;
+}
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 28px rgba(15,23,42,0.04);
+}
+
+/* Orders list wrapper */
+.orders-list { padding: 12px; }
+.notice { background:#fff7ed; border:1px solid #fde3b5; padding:8px 10px; border-radius:8px; color:#b45309; margin-bottom:10px; }
+
+/* Orders grid and cards */
+.orders-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.order-card {
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  border: 1px solid #eef6fb;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.order-head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.order-title { font-weight:700; font-size:15px; color:#0b1220; }
+.order-body { font-size:13px; color:#374151; line-height:1.5; }
+
+/* Badges */
+.badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  display: inline-block;
+}
+
+/* Badge variants */
+.badge.pending { background: #fff7ed; color:#92400e; border:1px solid rgba(144,63,11,0.06); }
+.badge.progress { background: #e0f2fe; color:#0369a1; border:1px solid rgba(3,105,161,0.08); }
+.badge.delivering { background: linear-gradient(90deg,#f3e8ff,#e9d5ff); color:#6b21a8; border:1px solid rgba(124,58,237,0.08); }
+.badge.done { background: #ecfee9; color:#166534; border:1px solid rgba(22,101,52,0.08); }
+
+/* Action buttons */
+.order-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.btn {
+  background:#0b1220;
+  color:#fff;
+  border:none;
+  padding:8px 12px;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn.ghost { background:transparent; border:1px solid #e6eef6; color:#0b1220; }
+.btn:disabled { opacity:0.6; cursor:not-allowed; }
+
+/* Helper text */
+.helper { color:#6b7280; font-size:13px; }
+
+/* Responsive */
+@media (max-width: 700px) {
+  .kpi-row, .kpis { flex-direction: column; }
+  .admin-actions { flex-direction: column; align-items: stretch; gap: 6px; }
+  .admin-search { width: 100%; }
+  .charts-grid { grid-template-columns: 1fr; }
+}
+/* admin.css - KPI, badges, grid, etc. (same as previously suggested) */
+.admin-container { max-width:1200px; margin:18px auto; padding:12px; font-family:Inter,system-ui,Arial; color:#0f172a; }
+.admin-top { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+.admin-search { padding:10px 12px; border-radius:10px; border:1px solid #e6eef6; min-width:240px; }
+.kpi-row, .kpis { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+.kpi { flex:1 1 160px; padding:12px 16px; border-radius:12px; color:#fff; min-height:64px; display:flex; flex-direction:column; justify-content:center; box-shadow:0 10px 30px rgba(15,23,42,0.06); }
+.kpi-title{ font-size:13px } .kpi-value{ font-weight:700; font-size:18px; margin-top:6px; }
+.kpi-blue{ background:linear-gradient(90deg,#2563eb,#60a5fa) } .kpi-amber{ background:linear-gradient(90deg,#f59e0b,#f59e0b); color:#111 }
+.kpi-cyan{ background:linear-gradient(90deg,#06b6d4,#67e8f9); color:#042b2d } .kpi-purple{ background:linear-gradient(90deg,#a855f7,#9333ea) } .kpi-green{ background:linear-gradient(90deg,#22c55e,#86efac); color:#05260a }
+.charts-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin-bottom:16px; }
+.card{ background:#fff; border-radius:12px; padding:12px; box-shadow:0 8px 28px rgba(15,23,42,0.04); }
+.orders-grid{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }
+.order-card{ background:linear-gradient(180deg,#fff,#fbfdff); border:1px solid #eef6fb; padding:12px; border-radius:12px; display:flex; flex-direction:column; gap:10px; }
+.order-head{ display:flex; justify-content:space-between; align-items:center; gap:8px; } .order-title{ font-weight:700; font-size:15px; color:#0b1220; }
+.order-body{ font-size:13px; color:#374151; line-height:1.5 }
+.badge{ padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px }
+.badge.pending{ background:#fff7ed; color:#92400e } .badge.progress{ background:#e0f2fe; color:#0369a1 } .badge.delivering{ background:linear-gradient(90deg,#f3e8ff,#e9d5ff); color:#6b21a8 } .badge.done{ background:#ecfee9; color:#166534 }
+.order-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
+.btn{ background:#0b1220; color:#fff; border:none; padding:8px 12px; border-radius:10px; font-weight:700; cursor:pointer }
+.btn.ghost{ background:transparent; border:1px solid #e6eef6; color:#0b1220 }
+.helper{ color:#6b7280; font-size:13px }
+@media(max-width:700px){ .kpi-row{ flex-direction:column } .admin-actions{ flex-direction:column; gap:8px } .admin-search{ width:100% } .charts-grid{ grid-template-columns:1fr } }

@@ -1006,3 +1006,7 @@ img {
   object-fit: contain;
   display: block; /* removes extra spacing */
 }
+.badge.pending { background:#fff7ed; color:#b45309; border:1px solid rgba(180,83,9,0.15); }
+.badge.progress { background:#e0f2fe; color:#0369a1; border:1px solid rgba(3,105,161,0.15); }
+.badge.delivering { background:#f3e8ff; color:#9333ea; border:1px solid rgba(147,51,234,0.15); }
+.badge.done { background:#ecfee9; color:#166534; border:1px solid rgba(22,101,52,0.15); }

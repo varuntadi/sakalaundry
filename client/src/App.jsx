@@ -1,20 +1,23 @@
 ﻿// client/src/App.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+
+/* Global styles */
 import "./styles/responsive.css";
 import "./styles/theme.css";
+import "./styles/orders.css";
 
-/* PAGES â€” use actual filenames (case-sensitive on Linux). 
-   I'm using lowercase filenames (landing.jsx, about.jsx, login.jsx, etc.)
-   â€” change these if your files are PascalCase. */
+/* PAGES (case-sensitive imports — ensure filenames match exactly) */
 import Landing from "./pages/Landing.jsx";
 import About from "./pages/About.jsx";
+import ContactUs from "./pages/ContactUs.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
-import Profile from "./pages/Profile.jsx";
-import Orders from "./pages/Orders.jsx";
+import Profile from "./pages/Profile.jsx"; // ensure file exists with this capitalization
+
+const Orders = React.lazy(() => import("./pages/Orders.jsx"));
+const MyOrders = React.lazy(() => import("./pages/MyOrders.jsx"));
 import Admin from "./pages/Admin.jsx";
-import ContactUs from "./pages/ContactUs.jsx";
 
 /* COMPONENTS / GUARDS */
 import Nav from "./components/Nav.jsx";
@@ -22,19 +25,11 @@ import Footer from "./components/Footer.jsx";
 import Protected from "./components/Protected.jsx";
 import AdminOnly from "./components/AdminOnly.jsx";
 
-/**
- * AppExpiryHandler
- * - Reads authExpiry from localStorage.
- * - If expired: clears auth and navigates to /login?reason=session_expired.
- * - Otherwise sets a timeout to expire exactly when authExpiry arrives.
- * - Also listens to 'storage' events so other tabs can trigger logout/redirect.
- */
+/* AppExpiryHandler unchanged (keeps session expiry logic) */
 function AppExpiryHandler() {
   const navigate = useNavigate();
-
   useEffect(() => {
     let timeoutId = null;
-
     function scheduleOrCheck() {
       try {
         const raw = localStorage.getItem("authExpiry");
@@ -46,7 +41,6 @@ function AppExpiryHandler() {
           navigate("/login?reason=session_expired", { replace: true });
           return;
         }
-
         const timeLeft = expiry - Date.now();
         if (timeLeft <= 0) {
           localStorage.removeItem("token");
@@ -54,7 +48,6 @@ function AppExpiryHandler() {
           navigate("/login?reason=session_expired", { replace: true });
           return;
         }
-
         timeoutId = setTimeout(() => {
           localStorage.removeItem("token");
           localStorage.removeItem("authExpiry");
@@ -65,15 +58,10 @@ function AppExpiryHandler() {
         navigate("/login?reason=session_expired", { replace: true });
       }
     }
-
     scheduleOrCheck();
-
     function onStorage(e) {
       if (e.key === "authExpiry") {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
+        if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
         scheduleOrCheck();
       }
       if (e.key === "token" && e.newValue === null) {
@@ -81,14 +69,12 @@ function AppExpiryHandler() {
         navigate("/login?reason=session_expired", { replace: true });
       }
     }
-
     window.addEventListener("storage", onStorage);
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener("storage", onStorage);
     };
   }, [navigate]);
-
   return null;
 }
 
@@ -116,14 +102,13 @@ export default function App() {
               element={
                 <Protected>
                   <Page>
-                    <div className="layout-box responsive-block">
-                      <Profile />
-                    </div>
+                    <div className="layout-box responsive-block"><Profile /></div>
                   </Page>
                 </Protected>
               }
             />
 
+            {/* Booking page (protected) */}
             <Route
               path="/orders"
               element={
@@ -131,7 +116,27 @@ export default function App() {
                   <Page>
                     <div className="layout-box">
                       <div className="table-wrap">
-                        <Orders />
+                        <Suspense fallback={<div className="card">Loading orders…</div>}>
+                          <Orders />
+                        </Suspense>
+                      </div>
+                    </div>
+                  </Page>
+                </Protected>
+              }
+            />
+
+            {/* My Orders (protected) */}
+            <Route
+              path="/my-orders"
+              element={
+                <Protected>
+                  <Page>
+                    <div className="layout-box">
+                      <div className="table-wrap">
+                        <Suspense fallback={<div className="card">Loading your orders…</div>}>
+                          <MyOrders />
+                        </Suspense>
                       </div>
                     </div>
                   </Page>
@@ -144,9 +149,7 @@ export default function App() {
               element={
                 <AdminOnly>
                   <Page>
-                    <div className="layout-box">
-                      <Admin />
-                    </div>
+                    <div className="layout-box"><Admin /></div>
                   </Page>
                 </AdminOnly>
               }

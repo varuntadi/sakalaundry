@@ -1,375 +1,502 @@
-import React, { useEffect, useState } from "react";
+// client/src/pages/Orders.jsx
+import React, { useEffect, useRef, useState } from "react";
+import { FaWhatsapp, FaPhoneAlt } from "react-icons/fa";
 import api from "../api";
+import "../styles/orders.css";
 
-/** ================== CONFIG — EDIT THESE ================== **/
-const APP_NAME         = "Saka Laundry";
-const LOGO_SRC         = "/img/sakalogo.jpg";      // file in /public/img/...
-const SUPPORT_WHATSAPP = "+91 91219 91113";        // WhatsApp / Business
-const SUPPORT_PHONE    = "+91 95156 64446";        // Call number
-/** ========================================================= **/
+/* CONFIG */
+const APP_NAME = "Saka Laundry";
+const SUPPORT_WHATSAPP = "+91 91219 91113";
+const SUPPORT_PHONE = "+91 95156 64446";
+const services = ["Wash and Fold", "Wash and Iron", "Iron", "Dry Clean", "Others"];
+const payments = [
+  { id: "cash", label: "Cash on pickup" },
+  { id: "upi", label: "UPI (Pay on pickup)" },
+  { id: "card", label: "Card (Pay on pickup)" },
+];
+const onlyDigits = (s = "") => String(s || "").replace(/\D/g, "");
 
-const services = ["Wash and Fold", "Wash and Iron", "Iron", "Dry Clean"];
-
-/* ---------- small helpers/components ---------- */
-function StatusBadge({ status }) {
-  const s = (status || "").toLowerCase();
-  const cls = s.includes("progress")
-    ? "badge progress"
-    : s.includes("complete")
-    ? "badge done"
-    : "badge pending";
-  return <span className={cls}>{status}</span>;
-}
-
-/* ====== WhatsApp: robust link + fallback ====== */
-const onlyDigits = (s = "") => s.replace(/\D/g, "");
-
-const mapsLink = (lat, lng, addr = "") =>
-  lat && lng
-    ? `https://www.google.com/maps?q=${lat},${lng}`
-    : addr
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
-    : "#";
-
+/* helpers */
 function buildWAUrl({ phone, text }) {
-  const p = onlyDigits(phone);
+  const p = onlyDigits(phone || "");
   const q = encodeURIComponent(text || "");
-  const ua = navigator.userAgent || "";
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-  if (isMobile) return `whatsapp://send?phone=${p}&text=${q}`;
-  return `https://api.whatsapp.com/send?phone=${p}&text=${q}`;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  if (!p) return `https://api.whatsapp.com/send?text=${q}`;
+  return isMobile ? `whatsapp://send?phone=${p}&text=${q}` : `https://api.whatsapp.com/send?phone=${p}&text=${q}`;
 }
 
-function WhatsAppButton({ phone, text, label = "Chat on WhatsApp", className = "" }) {
-  const href = buildWAUrl({ phone, text });
-
-  const onClick = () => {
-    // fallback for some desktops if deep link didn't switch focus
-    setTimeout(() => {
-      if (document.hidden === false) {
-        window.open(`https://wa.me/${onlyDigits(phone)}?text=${encodeURIComponent(text || "")}`, "_blank");
-      }
-    }, 1200);
-  };
-
+/* Floating action buttons */
+function FloatingGroup({ phone, text }) {
+  const containerStyle = { position: "fixed", right: 12, bottom: 14, zIndex: 9999, display: "flex", flexDirection: "column-reverse", gap: 10, alignItems: "center" };
+  const fab = { width: 52, height: 52, borderRadius: 52, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 14px 36px rgba(2,6,23,0.16)", cursor: "pointer" };
   return (
-    <a
-      href={href}
-      onClick={onClick}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`btn ${className}`}
-      style={{ background: "#7fb800", color: "#fff", border: "none", borderRadius: 9999 }}
-      aria-label="Chat on WhatsApp"
-    >
-      <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-        <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M19.11 17.28c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.62.14-.19.27-.71.88-.87 1.06-.16.18-.32.2-.59.07-.27-.14-1.14-.42-2.17-1.35-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.56.12-.12.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.62-1.5-.85-2.06-.22-.53-.45-.46-.62-.47l-.53-.01c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29s.99 2.66 1.13 2.85c.14.18 1.95 2.98 4.73 4.18.66.28 1.17.45 1.57.58.66.21 1.26.18 1.73.11.53-.08 1.6-.65 1.83-1.27.23-.62.23-1.15.16-1.27-.07-.12-.25-.2-.52-.34z" fill="currentColor"/>
-          <path d="M27.1 4.9C24.2 2 20.4.5 16.4.5S8.6 2 5.7 4.9C2.8 7.8 1.3 11.6 1.3 15.6c0 3 .9 5.8 2.7 8.2L2 31.5l7-1.8c2.3 1.3 4.8 1.9 7.4 1.9 4 0 7.8-1.5 10.7-4.4 2.9-2.9 4.4-6.7 4.4-10.7 0-4-1.5-7.8-4.4-10.7zM16.4 28.1c-2.3 0-4.6-.6-6.6-1.7l-.47-.27-4.14 1.06 1.11-4.03-.3-.5c-1.7-2.3-2.6-5-2.6-7.8 0-7.3 6-13.3 13.3-13.3s13.3 6 13.3 13.3-6 13.3-13.3 13.3z" fill="currentColor"/>
-        </svg>
-        <span>{label}</span>
-      </span>
-    </a>
+    <div style={containerStyle} aria-hidden>
+      <a href={`tel:${onlyDigits(phone)}`} style={{ textDecoration: "none" }}>
+        <div style={{ ...fab, background: "#0ea5e9" }} aria-hidden><FaPhoneAlt color="#fff" size={20} /></div>
+      </a>
+      <a href={buildWAUrl({ phone, text })} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+        <div style={{ ...fab, background: "#25D366" }} aria-hidden><FaWhatsapp color="#fff" size={22} /></div>
+      </a>
+    </div>
   );
 }
 
-function FloatingWhatsApp({ phone, text }) {
-  const href = buildWAUrl({ phone, text });
+/* Centered small modal (re-usable)
+   - small: boolean -> use compact width
+   - accessible: ESC closes, focus trap inside modal
+*/
+function CenterModal({
+  open,
+  title,
+  message,
+  acceptText = "OK",
+  declineText = "Cancel",
+  onAccept,
+  onDecline,
+  acceptPrimary = true,
+  danger = false,
+  small = false
+}) {
+  const modalRef = useRef(null);
+  const previouslyFocused = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    previouslyFocused.current = document.activeElement;
+    // wait next tick then focus
+    const focusable = modalRef.current?.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') || [];
+    if (focusable.length) focusable[0].focus();
+    else modalRef.current?.focus();
+
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        onDecline?.();
+      }
+      // simple focus trap: if Tab pressed, wrap around
+      if (e.key === "Tab" && modalRef.current) {
+        const nodes = Array.from(
+          modalRef.current.querySelectorAll('a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        ).filter(n => n.offsetParent !== null);
+        if (nodes.length === 0) return;
+        const first = nodes[0];
+        const last = nodes[nodes.length - 1];
+        if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        } else if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      // restore focus
+      try { previouslyFocused.current?.focus?.(); } catch(_) {}
+    };
+  }, [open, onDecline]);
+
+  if (!open) return null;
+
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Chat on WhatsApp"
-      style={{
-        position: "fixed",
-        right: 16,
-        bottom: 20,
-        width: 56,
-        height: 56,
-        borderRadius: "50%",
-        background: "#16a34a",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 10px 20px rgba(0,0,0,.15)",
-        zIndex: 50
-      }}
-    >
-      <svg width="26" height="26" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
-        <path d="M19.11 17.28c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.62.14-.19.27-.71.88-.87 1.06-.16.18-.32.2-.59.07-.27-.14-1.14-.42-2.17-1.35-.8-.71-1.34-1.59-1.5-1.86-.16-.27-.02-.42.12-.56.12-.12.27-.32.41-.48.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.48-.07-.14-.62-1.5-.85-2.06-.22-.53-.45-.46-.62-.47l-.53-.01c-.18 0-.48.07-.73.34-.25.27-.96.94-.96 2.29s.99 2.66 1.13 2.85c.14.18 1.95 2.98 4.73 4.18.66.28 1.17.45 1.57.58.66.21 1.26.18 1.73.11.53-.08 1.6-.65 1.83-1.27.23-.62.23-1.15.16-1.27-.07-.12-.25-.2-.52-.34z"/>
-        <path d="M27.1 4.9C24.2 2 20.4.5 16.4.5S8.6 2 5.7 4.9C2.8 7.8 1.3 11.6 1.3 15.6c0 3 .9 5.8 2.7 8.2L2 31.5l7-1.8c2.3 1.3 4.8 1.9 7.4 1.9 4 0 7.8-1.5 10.7-4.4 2.9-2.9 4.4-6.7 4.4-10.7 0-4-1.5-7.8-4.4-10.7z"/>
+    <>
+      <div className="modal-overlay" onClick={onDecline} />
+
+      <div
+        className={`modal-content${small ? " small" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        ref={modalRef}
+        onClick={(e) => e.stopPropagation()} // prevent overlay click when clicking inside
+      >
+        <h3 style={{ margin: 0, fontSize: 18 }}>{title}</h3>
+        <p style={{ marginTop: 12, color: "#374151", lineHeight: 1.45 }}>{message}</p>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 14 }}>
+          <button
+            onClick={onDecline}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid #eee",
+              background: "#fff",
+              color: danger ? "#c53030" : "#374151",
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            {declineText}
+          </button>
+          <button
+            onClick={onAccept}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "none",
+              background: acceptPrimary ? "#0b78f6" : "#06b6d4",
+              color: "#fff",
+              fontWeight: 800,
+              cursor: "pointer"
+            }}
+          >
+            {acceptText}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* Small inline validation tick */
+function ValidationTick({ show }) {
+  if (!show) return null;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", marginLeft: 10 }} aria-hidden>
+      <svg viewBox="0 0 36 36" width="28" height="28" aria-hidden>
+        <circle cx="18" cy="18" r="16" fill="none" stroke="#16a34a" strokeWidth="2" opacity="0.12" />
+        <path d="M10 19.5 L15.5 25 L26 12" fill="none" stroke="#059669" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+          style={{ strokeDasharray: 50, strokeDashoffset: 50, animation: "vt-draw .45s ease forwards" }} />
       </svg>
-    </a>
+      <style>{`@keyframes vt-draw { to { stroke-dashoffset: 0; } }`}</style>
+    </span>
   );
 }
 
-/* ====== Geolocation + Reverse Geocoding ====== */
-async function reverseGeocode(lat, lon) {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
-  const res = await fetch(url, {
-    headers: { Accept: "application/json", "User-Agent": "saka-app/1.0" },
-  });
-  if (!res.ok) throw new Error("Reverse geocoding failed");
-  return res.json();
-}
-
-async function autoFetchLocation(setForm, setErr, setMsg) {
-  if (!("geolocation" in navigator)) {
-    setErr("❌ This browser does not support location.");
-    return;
-  }
-
-  if (navigator.permissions) {
+/* Success screen — FULL WHITE SCREEN with zoom tick + falling petals + chime. */
+function SuccessScreen({ open, orderNumber, message, onClose }) {
+  useEffect(() => {
+    if (!open) return;
+    // chime
     try {
-      const perm = await navigator.permissions.query({ name: "geolocation" });
-      if (perm.state === "denied") {
-        setErr("📍 Location access is blocked. Click the 🔒 icon → Site Settings → Allow Location, then reload.");
-        return;
-      }
-    } catch {}
-  }
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const now = ctx.currentTime;
+      const g = ctx.createGain(); g.gain.value = 0.00008; g.connect(ctx.destination);
 
-  setMsg("📍 Fetching your location...");
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      try {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        let address = `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`;
-        try {
-          const data = await reverseGeocode(lat, lng);
-          address = data.display_name || address;
-        } catch {}
-        setForm((f) => ({ ...f, pickupAddress: address, lat, lng }));
-        setMsg("✅ Location added");
-      } catch {
-        setErr("❌ Could not fetch address");
-      }
-    },
-    (err) => {
-      if (err.code === err.PERMISSION_DENIED) {
-        setErr("📍 Please enable location access in browser settings (click the 🔒 icon).");
-      } else {
-        setErr("❌ Location error: " + err.message);
-      }
-    },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      const osc1 = ctx.createOscillator(); osc1.type = "sine"; osc1.frequency.setValueAtTime(760, now);
+      const osc2 = ctx.createOscillator(); osc2.type = "sine"; osc2.frequency.setValueAtTime(980, now + 0.04);
+
+      osc1.connect(g); osc2.connect(g);
+      g.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+      osc1.start(now); osc2.start(now + 0.04);
+      osc1.stop(now + 1.2); osc2.stop(now + 1.2);
+    } catch (e) { /* ignore audio errors */ }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => onClose?.(), 20000);
+    return () => clearTimeout(t);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const petals = Array.from({ length: 30 }).map((_, i) => {
+    const left = Math.round(Math.random() * 96) + 2;
+    const size = 8 + Math.round(Math.random() * 20);
+    const delay = (Math.random() * 1.6).toFixed(2);
+    const dur = (3 + Math.random() * 4).toFixed(2);
+    const rot = Math.round(Math.random() * 360);
+    const colors = ["#FDE68A","#F97316","#FB7185","#60A5FA","#34D399"];
+    return { i, left, size, delay, dur, rot, color: colors[Math.floor(Math.random()*colors.length)] };
+  });
+
+  return (
+    <div role="status" aria-live="polite" className="success-screen">
+      {petals.map(p => (
+        <div key={p.i} className="petal" style={{
+          left: p.left + "%",
+          width: p.size,
+          height: Math.round(p.size * 0.66),
+          background: p.color,
+          transform: `rotate(${p.rot}deg)`,
+          animationDelay: `${p.delay}s`,
+          animationDuration: `${p.dur}s`
+        }} />
+      ))}
+
+      <div className="success-inner">
+        <div className="tick-zoom" aria-hidden>
+          <svg viewBox="0 0 120 120" width="130" height="130" aria-hidden>
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stopColor="#16a34a" />
+                <stop offset="1" stopColor="#059669" />
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="56" fill="rgba(6,95,70,0.06)" />
+            <circle cx="60" cy="60" r="46" fill="#ffffff" />
+            <path d="M36 62 L52 78 L86 40" stroke="url(#g1)" strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+
+        <div className="title">Pickup confirmed</div>
+        <div className="subtitle">{message || `Your pickup booking is placed. Our agent will reach you shortly.`}</div>
+        <div className="orderid">Your order ID is #{orderNumber ?? "—"}</div>
+        <div className="quote">“Have a great day — thanks for choosing Saka Laundry!”</div>
+
+        <div>
+          <button className="btn primary success-close" onClick={onClose}>Go back</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
-/* ------------------------- PAGE ------------------------- */
+/* Dropdown used in the form */
+function DropdownList({ value, onChange, options }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="input-select" aria-label="Select">
+      {options.map(o => <option key={o.id ?? o} value={o.id ?? o}>{o.label ?? o}</option>)}
+    </select>
+  );
+}
+
+/* Main Orders component */
 export default function Orders() {
-  const [orders, setOrders] = useState([]);
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width:700px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    if (mq.addEventListener) mq.addEventListener("change", update); else mq.addListener(update);
+    return () => { try { mq.removeEventListener("change", update); } catch { mq.removeListener(update); } };
+  }, []);
+
   const [form, setForm] = useState({
     service: services[0],
     pickupAddress: "",
     phone: "",
     notes: "",
-    lat: null,
-    lng: null,
+    lat: null, lng: null,
+    pickupDate: "",
+    delivery: "regular",
+    payment: payments[0].id,
   });
 
-  const load = async () => {
-    setLoading(true);
-    setErr("");
-    try {
-      const res = await api.get("/orders");
-      setOrders(res.data || []);
-    } catch (e) {
-      setErr(e?.response?.data?.error || "Failed to load orders");
-    } finally {
-      setLoading(false);
-    }
+  const [orders, setOrders] = useState([]);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [expressConfirmOpen, setExpressConfirmOpen] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [validationText, setValidationText] = useState("");
+  const [confirmSheetOpen, setConfirmSheetOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successData, setSuccessData] = useState({});
+  const formRef = useRef(null);
+
+  const [validationPassed, setValidationPassed] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async function load() {
+      setLoading(true);
+      try {
+        const res = await api.get("/orders");
+        if (!cancelled) setOrders(Array.isArray(res.data) ? res.data : []);
+      } catch (e) {
+        if (!cancelled) { setErr("Failed to load orders"); setTimeout(()=>setErr(""),2200); }
+      } finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleDeliveryChange = (value) => {
+    if (value === "express") { setExpressConfirmOpen(true); return; }
+    setForm(f => ({ ...f, delivery: "regular" }));
   };
-  useEffect(() => { load(); }, []);
 
-  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const acceptExpress = () => { setForm(f => ({ ...f, delivery: "express" })); setExpressConfirmOpen(false); setMsg("Express selected — extra cost depends on order."); setTimeout(()=>setMsg(""),3200); };
+  const declineExpress = () => { setForm(f => ({ ...f, delivery: "regular" })); setExpressConfirmOpen(false); setMsg("Kept regular delivery."); setTimeout(()=>setMsg(""),2200); };
 
-  const createOrder = async (e) => {
-    e.preventDefault();
-    setMsg(""); setErr("");
-    try {
-      const payload = { ...form, phone: onlyDigits(form.phone) }; // normalize phone
-      await api.post("/orders", payload);
-      setMsg("✅ Order created!");
-      setForm({ service: services[0], pickupAddress: "", phone: "", notes: "", lat: null, lng: null });
-      load();
-    } catch (e) {
-      setErr(e?.response?.data?.error || "Failed to create order");
-    }
+  const requestAutoFetch = () => {
+    if (!("geolocation" in navigator)) { setErr("This browser doesn't support location."); setTimeout(()=>setErr(""),2000); return; }
+    setMsg("Fetching location...");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        let address = `Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)}`;
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+          if (r.ok) { const j = await r.json(); if (j?.display_name) address = j.display_name; }
+        } catch {}
+        setForm(f => ({ ...f, pickupAddress: address, lat, lng }));
+        setMsg("Location added"); setTimeout(()=>setMsg(""),1800);
+      } catch (e) { setErr("Could not fetch address"); setTimeout(()=>setErr(""),1800); }
+    }, (err) => { setErr(err.code === err.PERMISSION_DENIED ? "Please enable location access." : "Location error: " + err.message); setTimeout(()=>setErr(""),2500); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
   };
 
-  const cancelOrder = async (id) => {
-    try { await api.delete(`/orders/${id}`); load(); }
-    catch (e) { setErr(e?.response?.data?.error || "Failed to cancel order"); }
+  const openConfirmSheet = (e) => { if (e) e.preventDefault(); setConfirmSheetOpen(true); };
+  const closeConfirmSheet = () => setConfirmSheetOpen(false);
+
+  const validateFields = () => {
+    const phoneDigits = onlyDigits(form.phone);
+    if (!phoneDigits || phoneDigits.length < 7) { setValidationText("Please provide a valid phone number."); setValidationOpen(true); return false; }
+    if (!form.pickupAddress) { setValidationText("Pickup address is required."); setValidationOpen(true); return false; }
+    if (!form.pickupDate) { setValidationText("Please select a pickup date."); setValidationOpen(true); return false; }
+    return true;
   };
 
-  // Prefilled WA message from current form inputs
-  const quickMsg =
-    `Hi! I'd like to schedule a free pickup.\n` +
-    `Service: ${form.service}\n` +
-    `Pickup address: ${form.pickupAddress || "-"}\n` +
-    (form.lat && form.lng ? `Location: ${form.lat}, ${form.lng}\n` : "") +
-    `Phone: ${onlyDigits(form.phone) || "-"}\n` +
-    (form.notes ? `Notes: ${form.notes}\n` : "");
+  const performCreate = async () => {
+    setConfirmSheetOpen(false); setErr(""); setMsg("");
+    if (!validateFields()) return;
+    setValidationPassed(true);
+    setTimeout(async () => {
+      setValidationPassed(false);
+      setCreating(true);
+      try {
+        const payload = { ...form, phone: onlyDigits(form.phone) };
+        const res = await api.post("/orders", payload);
+        const created = res.data;
+        setOrders(prev => [created, ...prev]);
+        setSuccessData({ orderNumber: created.orderNumber ?? created._1d, details: created });
+        setSuccessOpen(true);
+        setForm({ service: services[0], pickupAddress: "", phone: "", notes: "", lat: null, lng: null, pickupDate: "", delivery: "regular", payment: payments[0].id });
+        if (isMobile && formRef.current) formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (e) { setErr(e?.response?.data?.error || e?.message || "Failed to create order"); setTimeout(() => setErr(""), 3200); } finally { setCreating(false); }
+    }, 420);
+  };
+
+  const quickMsg = (f) => `Hi! I'd like to schedule a pickup.\nService: ${f.service}\nPickup address: ${f.pickupAddress || "-"}\nPickup: ${f.pickupDate || "-"}\nPhone: ${onlyDigits(f.phone) || "-"}\nDelivery: ${f.delivery}\nPayment: ${f.payment}`;
+
+  const containerStyle = isMobile ? { maxWidth: 520, margin: "6px auto", padding: "6px 12px" } : { maxWidth: 980, margin: "14px auto", padding: 12 };
+  const labelStyle = { display: "block", marginBottom: 6, fontWeight: 700 };
+  const inputStyle = { width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid #eef6fb", background: "#fff" };
 
   return (
-    <div className="container">
-      {/* ---------- TOP ---------- */}
-      <div className="card" style={{
-          marginBottom: 16, padding: "18px 20px", display: "flex",
-          alignItems: "center", gap: 12, justifyContent: "center",
-          background:"linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.85))"
-        }}>
-        <img src={LOGO_SRC} alt={`${APP_NAME} logo`}
-          style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 8 }}
-          onError={(e)=>{ e.currentTarget.style.visibility="hidden"; }}
-        />
-        <h2 className="section-title" style={{ margin: 0 }}>{APP_NAME} — My Orders</h2>
+    <div className="container orders-page" style={containerStyle} ref={formRef}>
+      <div style={{ textAlign: "center", marginBottom: 8 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: "#0b78f6" }}>BOOK PICKUP</h2>
       </div>
 
-      {/* ---------- FORM ---------- */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <form id="create-order-form" className="form" onSubmit={createOrder}>
-          <div>
-            <label>Service</label>
-            <select name="service" value={form.service} onChange={onChange}>
-              {services.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+      <div className="card form-card" style={{ padding: isMobile ? 12 : 14, marginBottom: 14 }}>
+        <form onSubmit={(e) => { e.preventDefault(); openConfirmSheet(e); }}>
+          <div style={{ marginBottom: 10 }}>
+            <label style={labelStyle}>Service</label>
+            <DropdownList value={form.service} onChange={(v) => setForm(f => ({ ...f, service: v }))} options={services.map(s => ({ id: s, label: s }))} />
           </div>
 
-          <div>
-            <label>Pickup address</label>
-            <input
-              name="pickupAddress"
-              placeholder="Flat 301, MG Road, Indore"
-              value={form.pickupAddress}
-              onChange={onChange}
-            />
-            {/* Auto-fetch location bar */}
-            <div onClick={() => autoFetchLocation(setForm, setErr, setMsg)}
-              style={{ marginTop: 6, padding: "10px", textAlign: "center",
-                background: "#f1f5f9", borderRadius: 6, cursor: "pointer",
-                fontWeight: 600, color: "#0369a1" }}>
-              🔄 Auto-fetch my location
+          <div style={{ marginBottom: 10 }}>
+            <label style={labelStyle}>Pickup address</label>
+            <input style={inputStyle} placeholder="Flat 301, MG Road, Indore" value={form.pickupAddress} onChange={(e) => setForm(f => ({ ...f, pickupAddress: e.target.value }))} />
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="btn ghost" onClick={requestAutoFetch} style={{ padding: "8px 10px", borderRadius: 8 }}>🔄 Auto-fetch</button>
             </div>
-
-            {(form.lat && form.lng) && (
-              <div className="helper" style={{ marginTop: 4, display:"flex", gap:8, alignItems:"center" }}>
-                <span>📍 {form.lat.toFixed(5)}, {form.lng.toFixed(5)}</span>
-                <a
-                  href={mapsLink(form.lat, form.lng, form.pickupAddress)}
-                  target="_blank" rel="noopener noreferrer"
-                  className="btn ghost"
-                  style={{ padding:"4px 8px", borderRadius:8 }}
-                >
-                  Open in Maps
-                </a>
-              </div>
-            )}
           </div>
 
-          <div>
-            <label>Phone</label>
-            <input name="phone" placeholder="9876543210"
-              value={form.phone} onChange={onChange} />
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div>
+              <label style={labelStyle}>Pickup date</label>
+              <input type="date" style={inputStyle} value={form.pickupDate} onChange={(e) => setForm(f => ({ ...f, pickupDate: e.target.value }))} min={new Date().toISOString().slice(0,10)} />
+            </div>
+            <div>
+              <label style={labelStyle}>Phone</label>
+              <input style={inputStyle} placeholder="Enter your mobile number" value={form.phone} onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
           </div>
 
-          <div>
-            <label>Notes</label>
-            <input name="notes" placeholder="Any special handling?"
-              value={form.notes} onChange={onChange} />
+          <div style={{ marginBottom: 10 }}>
+            <label style={labelStyle}>Notes</label>
+            <input style={inputStyle} placeholder="Any special handling?" value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} />
           </div>
 
-          <div className="stack" style={{ alignItems: "center", gap: 10 }}>
-            <button className="btn" type="submit">Create Order</button>
-            <WhatsAppButton phone={SUPPORT_WHATSAPP} text={quickMsg} label="Chat on WhatsApp" className="ghost" />
-            {msg && <span className="helper">{msg}</span>}
-            {err && <span className="helper" style={{ color: "var(--bad)" }}>{err}</span>}
+          <div style={{ marginBottom: 10 }}>
+            <label style={labelStyle}>Delivery type</label>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <label style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                <input type="radio" name="delivery" value="regular" checked={form.delivery === "regular"} onChange={() => handleDeliveryChange("regular")} /> Regular
+              </label>
+              <label style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                <input type="radio" name="delivery" value="express" checked={form.delivery === "express"} onChange={() => handleDeliveryChange("express")} /> Express
+              </label>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <label style={labelStyle}>Payment</label>
+            <DropdownList options={payments} value={form.payment} onChange={(v) => setForm(f => ({ ...f, payment: v }))} />
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 8, alignItems: "center" }}>
+            <button type="submit" className="btn primary dark" style={{ flex: 1, padding: "10px 12px", fontWeight: 800 }} disabled={creating}>{creating ? 'Creating...' : 'BOOK PICKUP'}</button>
+            <ValidationTick show={validationPassed} />
+            <a className="btn wa" href={buildWAUrl({ phone: SUPPORT_WHATSAPP, text: quickMsg(form) })} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", padding: "8px 12px" }}>
+              <FaWhatsapp color="#fff" size={14} style={{ marginRight: 8 }} /> Message
+            </a>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            {msg && <div className="alert success">{msg}</div>}
+            {err && <div className="alert warning">{err}</div>}
           </div>
         </form>
       </div>
 
-      {loading && <div className="card">Loading…</div>}
-      {!loading && orders.length === 0 && <div className="card">No orders yet.</div>}
+      {loading && <div className="card order" style={{ padding: isMobile ? 8 : 12 }}>Loading…</div>}
 
-      {/* ---------- ORDERS ---------- */}
-      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))" }}>
-        {orders.map((o) => (
-          <div key={o._id} className="card">
-            <div style={{ display:"flex", justifyContent:"space-between" }}>
-              <div style={{ fontWeight:700 }}>{o.service}</div>
-              <StatusBadge status={o.status} />
+      {/* Express confirm uses animated centered modal with blur backdrop */}
+      <CenterModal
+        open={expressConfirmOpen}
+        title="Express delivery — confirm"
+        message={`Express is faster. Extra cost will depend on your order. Proceed with Express?`}
+        acceptText="Proceed"
+        declineText="No, keep regular"
+        onAccept={acceptExpress}
+        onDecline={declineExpress}
+      />
+
+      {/* validation modal - use small to keep it compact and centered */}
+      <CenterModal
+        open={validationOpen}
+        title="Required"
+        message={validationText}
+        acceptText="OK"
+        declineText="Cancel"
+        onAccept={() => setValidationOpen(false)}
+        onDecline={() => setValidationOpen(false)}
+        danger
+        small
+      />
+
+      {/* Confirm pickup modal (centered) */}
+      {confirmSheetOpen && (
+        <>
+          <div className="modal-overlay" onClick={closeConfirmSheet} />
+          <div className="modal-content" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <strong>Confirm pickup</strong>
+              <button onClick={closeConfirmSheet} style={{ background: "transparent", border: "none", fontWeight: 700 }}>✕</button>
             </div>
-            {o.pickupAddress && <div className="helper" style={{ marginTop:6 }}>{o.pickupAddress}</div>}
-            {o.lat && o.lng && (
-              <div className="helper" style={{ display:"flex", gap:8, alignItems:"center" }}>
-                <span>📍 {Number(o.lat).toFixed(5)}, {Number(o.lng).toFixed(5)}</span>
-                <a
-                  href={mapsLink(o.lat, o.lng, o.pickupAddress)}
-                  target="_blank" rel="noopener noreferrer"
-                  className="btn ghost"
-                  style={{ padding:"2px 8px", borderRadius:8 }}
-                >
-                  Map
-                </a>
-              </div>
-            )}
-            {o.phone && <div className="helper">{o.phone}</div>}
-            {o.notes && <div className="helper">“{o.notes}”</div>}
-
-            <div className="stack" style={{ marginTop:12 }}>
-              <button className="btn ghost" onClick={() => cancelOrder(o._id)}>Cancel</button>
-              <WhatsAppButton
-                phone={SUPPORT_WHATSAPP}
-                label="WhatsApp"
-                text={
-                  `Hi! Query about my order.\n` +
-                  `Order ID: ${o._id}\n` +
-                  `Service: ${o.service}\n` +
-                  (o.pickupAddress ? `Pickup: ${o.pickupAddress}\n` : "") +
-                  (o.lat && o.lng ? `Location: ${o.lat}, ${o.lng}\n` : "") +
-                  (o.phone ? `Phone: ${o.phone}\n` : "") +
-                  (o.notes ? `Notes: ${o.notes}\n` : "") +
-                  (o.status ? `Status: ${o.status}\n` : "")
-                }
-              />
+            <div style={{ marginTop: 12, color: "#374151" }}>
+              <div><strong>Service:</strong> {form.service}</div>
+              <div style={{ marginTop: 6 }}><strong>Pickup:</strong> {form.pickupDate || "-"}</div>
+              <div style={{ marginTop: 6 }}><strong>Address:</strong> {form.pickupAddress || "-"}</div>
+              <div style={{ marginTop: 6 }}><strong>Delivery:</strong> {form.delivery}</div>
+              <div style={{ marginTop: 6 }}><strong>Payment:</strong> {payments.find(p => p.id === form.payment)?.label || form.payment}</div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <button onClick={closeConfirmSheet} style={{ flex: 1, padding: "10px 12px", borderRadius: 8 }}>Cancel</button>
+              <button onClick={performCreate} style={{ flex: 1, padding: "10px 12px", borderRadius: 8, background: "#0b78f6", color: "#fff", fontWeight: 800 }} disabled={creating}>{creating ? 'Creating...' : 'Confirm'}</button>
             </div>
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
-      {/* ---------- Floating bubbles (phone + WhatsApp) ---------- */}
-      <a
-        href={`tel:${onlyDigits(SUPPORT_PHONE)}`}
-        aria-label="Call us"
-        style={{
-          position: "fixed",
-          right: 16,
-          bottom: 88,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          background: "#1296f3",
-          color: "#fff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 10px 20px rgba(0,0,0,.15)",
-          zIndex: 50
-        }}
-      >
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011.1-.23c1.2.49 2.6.76 4 .76a1 1 0 011 1V20a1 1 0 01-1 1C11.3 21 3 12.7 3 2a1 1 0 011-1h3.2a1 1 0 011 1c0 1.4.27 2.8.76 4a1 1 0 01-.23 1.1L6.6 10.8z"/>
-        </svg>
-      </a>
+      {/* Full-screen success (20s) */}
+      <SuccessScreen
+        open={successOpen}
+        orderNumber={successData.orderNumber}
+        message={`Your pickup booking (Order #${successData.orderNumber ?? ""}) is placed. Our agent will reach you shortly.`}
+        onClose={() => { setSuccessOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+      />
 
-      {/* use the same prefilled message as the form */}
-      <FloatingWhatsApp phone={SUPPORT_WHATSAPP} text={quickMsg} />
+      <FloatingGroup phone={SUPPORT_PHONE} text={quickMsg(form)} />
     </div>
   );
 }

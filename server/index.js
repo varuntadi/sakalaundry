@@ -1,6 +1,7 @@
 ﻿// server/index.js
-// ES module style
 import express from "express";
+import http from "http";
+import { Server as SocketIOServer } from "socket.io";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -10,98 +11,53 @@ import jwt from "jsonwebtoken";
 dotenv.config();
 
 const app = express();
+app.use(express.json());
+
 const PORT = process.env.PORT || 5000;
 
-/* ----------------- CORS (robust, handles preflight) ----------------- */
-/**
- * Make sure FRONTEND_URL is set in your Render/host environment to:
- *   https://sakalaundry.netlify.app
- *
- * If FRONTEND_URL is not set, we fall back to the common Netlify URL so
- * the site still works while you configure environment variables.
- */
+/* ----------------- CORS ----------------- */
 const FALLBACK_FRONTEND = "https://sakalaundry.netlify.app";
-const frontendUrl = process.env.FRONTEND_URL || FALLBACK_FRONTEND;
-
-// Allowed origins includes local dev hosts and the configured frontend URL
+const FRONTEND_URL = process.env.FRONTEND_URL || FALLBACK_FRONTEND;
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:3000",
-  frontendUrl,
+  FRONTEND_URL,
 ].filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // allow non-browser requests (curl, Postman) which send no origin
+    // allow non-browser requests (curl, Postman) where origin may be undefined
     if (!origin) return callback(null, true);
-
-    // block file:// origins (user opening local file)
-    if (typeof origin === "string" && origin.startsWith("file://")) {
-      console.warn("Blocked file:// origin. Use a local server for dev.");
-      return callback(null, false);
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    console.warn("CORS blocked origin:", origin);
+    if (typeof origin === "string" && origin.startsWith("file://")) return callback(null, false);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error("CORS not allowed"), false);
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true, // keep true if using cookies or credentials; otherwise false
+  credentials: true,
 };
-
-// Register CORS BEFORE body parsers so preflight is handled early
 app.use(cors(corsOptions));
-// NOTE: removed app.options("*", cors(corsOptions)) because certain path-to-regexp versions
-// throw when registering '*' as a route. The cors middleware above correctly handles preflight.
- 
-/* ----------------- Middlewares ----------------- */
-// parse JSON bodies (place before routes)
-app.use(express.json());
 
-// catch invalid JSON in request body early and return 400
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    return res.status(400).json({ error: "Invalid JSON in request body" });
-  }
-  next();
-});
-
-// request logger (simple)
+/* simple request logger */
 app.use((req, res, next) => {
-  console.log("âž¡", req.method, req.url);
+  console.log("➡", req.method, req.url);
   next();
 });
 
-/* ----------------- DB + Server start (dev-tolerant) ----------------- */
-const MONGO_URI = process.env.MONGO_URI || "";
-
-async function startServer() {
-  if (MONGO_URI) {
-    try {
-      await mongoose.connect(MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-      console.log("âœ… Connected to MongoDB Atlas");
-    } catch (err) {
-      console.error("âŒ MongoDB connection error (continuing in dev):", err.message || err);
-    }
-  } else {
-    console.warn("âš ï¸ No MONGO_URI provided â€” starting server without DB (dev only).");
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`ðŸš€ Server listening on port ${PORT}`);
-    console.log(`âž¡ Allowed frontend origins: ${allowedOrigins.join(", ")}`);
-  });
-}
+/* ----------------- HTTP + Socket.IO ----------------- */
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+  pingInterval: 25000,
+  pingTimeout: 60000,
+});
 
 /* ----------------- Models ----------------- */
+// User
 const userSchema = new mongoose.Schema(
   {
     name: String,
@@ -113,18 +69,26 @@ const userSchema = new mongoose.Schema(
 );
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 
+// Counter (for sequences)
+const counterSchema = new mongoose.Schema({ _id: { type: String, required: true }, seq: { type: Number, default: 0 } });
+const Counter = mongoose.models.Counter || mongoose.model("Counter", counterSchema);
+
+// Order
 const orderSchema = new mongoose.Schema(
   {
+    orderNumber: { type: Number, index: true, unique: true, sparse: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    service: {
-      type: String,
-      enum: ["Wash and Fold", "Wash and Iron", "Iron", "Dry Clean"],
-      required: true,
-    },
-    status: { type: String, enum: ["Pending", "In Progress", "Completed"], default: "Pending" },
+    service: { type: String, enum: ["Wash and Fold", "Wash and Iron", "Iron", "Dry Clean", "Others"], required: true },
+    status: { type: String, enum: ["Pending", "In Progress", "Delivering", "Completed"], default: "Pending" },
+    clothTypes: { type: [String], default: [] },
     pickupAddress: String,
+    lat: Number,
+    lng: Number,
     phone: String,
     notes: String,
+    pickupDate: String,
+    pickupTime: String,
+    delivery: { type: String, enum: ["regular", "express"], default: "regular" },
   },
   { timestamps: true }
 );
@@ -135,7 +99,6 @@ function auth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: "No token provided" });
-
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = payload;
@@ -144,38 +107,124 @@ function auth(req, res, next) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
-
 function adminOnly(req, res, next) {
-  if (req.user?.role !== "admin") {
-    return res.status(403).json({ error: "Admin only" });
-  }
+  if (req.user?.role !== "admin") return res.status(403).json({ error: "Admin only" });
   next();
 }
 
-/* ----------------- Routes ----------------- */
-// health
-app.get("/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+/* ----------------- Sequence helper ----------------- */
+async function getNextSequence(name) {
+  const doc = await Counter.findByIdAndUpdate({ _id: name }, { $inc: { seq: 1 } }, { new: true, upsert: true });
+  return doc.seq;
+}
 
-// test endpoint
-app.post("/signup-test", (req, res) => res.json({ ok: true, msg: "POST /signup-test reached the server ðŸ‘" }));
+/* ----------------- Socket.IO admin namespace ----------------- */
+/* Use a dedicated namespace for admin sockets so only admins receive admin events */
+const adminNs = io.of("/admin");
+
+// Authenticate sockets connecting to /admin
+adminNs.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+    if (!token) return next(new Error("No token"));
+    const raw = token.startsWith("Bearer ") ? token.slice(7) : token;
+    const payload = jwt.verify(raw, process.env.JWT_SECRET);
+    if (!payload || payload.role !== "admin") return next(new Error("Forbidden"));
+    socket.user = payload;
+    return next();
+  } catch (err) {
+    return next(new Error("Authentication error"));
+  }
+});
+
+adminNs.on("connection", (socket) => {
+  console.log("🔌 Admin connected via socket:", socket.id, "user:", socket.user?.id);
+  socket.on("disconnect", (reason) => {
+    console.log("🔌 Admin disconnected:", socket.id, reason);
+  });
+});
+
+/* ----------------- Twilio SMS helper (optional) ----------------- */
+const TW_SID = process.env.TWILIO_ACCOUNT_SID;
+const TW_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TW_FROM = process.env.TWILIO_FROM; // e.g. "+1XXXXXXXXXX"
+const ADMIN_PHONE = process.env.ADMIN_PHONE; // e.g. "+91XXXXXXXXXX"
+
+async function sendAdminSMSIfConfigured(order) {
+  if (!TW_SID || !TW_TOKEN || !TW_FROM || !ADMIN_PHONE) {
+    // not configured — skip silently
+    console.log("ℹ️ Twilio not configured; skipping SMS send.");
+    return;
+  }
+
+  try {
+    // dynamic import so package is optional
+    const TwilioModule = await import("twilio").catch((e) => {
+      throw e;
+    });
+    const Twilio = TwilioModule.default || TwilioModule;
+    const client = Twilio(TW_SID, TW_TOKEN);
+
+    const text =
+      `New order #${order.orderNumber || order._id}\n` +
+      `Service: ${order.service}\n` +
+      `Phone: ${order.phone || "-"}\n` +
+      `Pickup: ${order.pickupAddress || "-"}\n` +
+      `Delivery: ${order.delivery || "regular"}`;
+
+    const msg = await client.messages.create({
+      body: text,
+      from: TW_FROM,
+      to: ADMIN_PHONE,
+    });
+    console.log("📩 Twilio SMS sent, sid:", msg.sid);
+  } catch (err) {
+    console.warn("⚠️ sendAdminSMSIfConfigured failed:", err && err.message ? err.message : err);
+  }
+}
+
+/* ----------------- Status normalization ----------------- */
+/**
+ * Accept common variants and map to canonical statuses used in DB:
+ * - Delivered / Delivered -> Completed
+ * - Delivering / Out for delivery -> Delivering
+ * - In progress / progress -> In Progress
+ * - pending -> Pending
+ */
+const CANONICAL_STATUSES = ["Pending", "In Progress", "Delivering", "Completed"];
+function normalizeStatus(input) {
+  if (!input) return null;
+  const s = String(input).trim().toLowerCase();
+  if (s === "delivered" || s === "delivered." || s === "complete" || s === "completed") return "Completed";
+  if (s.includes("deliver") && !s.includes("deliveri d")) return "Delivering"; // covers "delivering", "out for delivery"
+  if (s === "in progress" || s === "inprogress" || s === "progress") return "In Progress";
+  if (s === "pending") return "Pending";
+  // title-case fallback
+  const title = s
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+  if (CANONICAL_STATUSES.includes(title)) return title;
+  return null;
+}
+
+/* ----------------- Routes ----------------- */
+app.get("/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
 // signup
 app.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: "All fields are required" });
-
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: "Email already exists" });
-
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ name, email, password: hashedPassword });
     await newUser.save();
-
     return res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     if (err?.code === 11000) return res.status(409).json({ error: "Email already exists" });
-    console.error("âŒ /signup error:", err);
+    console.error("❌ /signup error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
@@ -185,17 +234,14 @@ app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email & password required" });
-
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User not found" });
-
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return res.status(401).json({ error: "Invalid password" });
-
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
     return res.json({ message: "Login successful", token });
   } catch (err) {
-    console.error("âŒ /login error:", err);
+    console.error("❌ /login error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
@@ -207,61 +253,134 @@ app.get("/profile", auth, async (req, res) => {
   res.json(user);
 });
 
-// orders
+/* ----------------- Orders (user) ----------------- */
+/* POST /orders -> create with orderNumber */
 app.post("/orders", auth, async (req, res) => {
-  const { service, pickupAddress, phone, notes } = req.body;
-  if (!service) return res.status(400).json({ error: "Service is required" });
+  try {
+    const { service, pickupAddress, phone, notes, clothTypes, pickupDate, pickupTime, delivery, lat, lng } = req.body;
+    if (!service) return res.status(400).json({ error: "Service is required" });
+    const orderNumber = await getNextSequence("orderNumber");
+    const created = await Order.create({
+      orderNumber,
+      userId: req.user.id,
+      service,
+      clothTypes: clothTypes || [],
+      pickupAddress,
+      phone,
+      notes,
+      pickupDate,
+      pickupTime,
+      delivery: delivery || "regular",
+      lat,
+      lng,
+      status: "Pending",
+    });
 
-  const order = await Order.create({
-    userId: req.user.id,
-    service,
-    pickupAddress,
-    phone,
-    notes,
-  });
+    // Emit to all connected admins in /admin namespace
+    try {
+      adminNs.emit("admin:newOrder", created);
+      console.log("📣 Emitted admin:newOrder", created._id);
+    } catch (e) {
+      console.warn("⚠️ Could not emit socket event:", e);
+    }
 
-  res.status(201).json(order);
+    // Optionally send SMS to admin (safe, non-blocking)
+    sendAdminSMSIfConfigured(created).catch((err) => console.warn("sendAdminSMSIfConfigured error:", err));
+
+    return res.status(201).json(created);
+  } catch (err) {
+    console.error("❌ POST /orders error:", err);
+    return res.status(500).json({ error: err.message || "Failed to create order" });
+  }
 });
 
+/* GET /orders -> user's orders */
 app.get("/orders", auth, async (req, res) => {
-  const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
-  res.json(orders);
+  try {
+    const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    console.error("❌ GET /orders error:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
 });
 
+/* DELETE /orders/:id -> cancel (user only) */
 app.delete("/orders/:id", auth, async (req, res) => {
-  const order = await Order.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
-  if (!order) return res.status(404).json({ error: "Order not found" });
-  res.json({ message: "Order canceled" });
+  try {
+    const order = await Order.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    res.json({ message: "Order canceled" });
+  } catch (err) {
+    console.error("❌ DELETE /orders/:id error:", err);
+    res.status(500).json({ error: "Failed to delete order" });
+  }
 });
 
-// admin routes
+/* ----------------- Admin routes ----------------- */
+/* GET /admin/orders -> all orders */
 app.get("/admin/orders", auth, adminOnly, async (req, res) => {
-  const orders = await Order.find().populate("userId", "name email").sort({ createdAt: -1 });
-  res.json(orders);
+  try {
+    const orders = await Order.find().populate("userId", "name email").sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    console.error("❌ GET /admin/orders error:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
 });
 
+/* PATCH /admin/orders/:id/status -> update status (normalizes input and accepts aliases) */
 app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
-  const { status } = req.body;
-  const allowed = ["Pending", "In Progress", "Completed"];
-  if (!allowed.includes(status)) return res.status(400).json({ error: `Status must be one of: ${allowed.join(", ")}` });
+  try {
+    const raw = req.body?.status;
+    const normalized = normalizeStatus(raw);
+    if (!normalized) {
+      return res.status(400).json({ error: `Status must be one of: ${CANONICAL_STATUSES.join(", ")} (aliases allowed)` });
+    }
 
-  const order = await Order.findById(req.params.id);
-  if (!order) return res.status(404).json({ error: "Order not found" });
+    const updated = await Order.findByIdAndUpdate(req.params.id, { status: normalized }, { new: true }).populate("userId", "name email");
+    if (!updated) return res.status(404).json({ error: "Order not found" });
 
-  order.status = status;
-  await order.save();
+    // Emit update to admin namespace (so other admins see changes)
+    try {
+      adminNs.emit("admin:orderUpdated", updated);
+    } catch (e) {
+      console.warn("⚠️ Could not emit admin:orderUpdated", e);
+    }
 
-  const updated = await Order.findById(order._id).populate("userId", "name email");
-  res.json(updated);
+    return res.json(updated);
+  } catch (err) {
+    console.error("❌ PATCH /admin/orders/:id/status error:", err);
+    res.status(500).json({ error: "Failed to update status" });
+  }
 });
 
-/* ----------------- Root ----------------- */
-app.get("/", (req, res) => res.send("ðŸš€ API is running..."));
+app.get("/admin/statuses", auth, adminOnly, (req, res) => {
+  res.json({ statuses: CANONICAL_STATUSES });
+});
 
-/* ----------------- Start ----------------- */
+/* ----------------- Root & start ----------------- */
+app.get("/", (req, res) => res.send("🚀 API is running..."));
+
+async function startServer() {
+  const MONGO_URI = process.env.MONGO_URI || "";
+  if (MONGO_URI) {
+    try {
+      await mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+      console.log("✅ Connected to MongoDB");
+    } catch (err) {
+      console.error("❌ MongoDB connection error (continuing in dev):", err.message || err);
+    }
+  } else {
+    console.warn("⚠️ No MONGO_URI provided — starting server without DB (dev only).");
+  }
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server + sockets listening on port ${PORT}`);
+  });
+}
+
 startServer();
 
-/* ----------------- Global error handlers (optional helpful) ----------------- */
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception:", err);
 });

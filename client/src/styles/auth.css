@@ -1,0 +1,1365 @@
+/* ---------- Page wrapper & card ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 18px;
+  background: #f7fafc;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #0b1220;
+}
+
+.auth-card.slim {
+  width: 520px;
+  max-width: calc(100% - 40px);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 34px rgba(10, 20, 30, 0.06);
+  padding: 26px;
+}
+
+/* small container inside card */
+.auth-body {
+  padding: 6px 8px;
+}
+
+/* lock badge at the top */
+.auth-lock-badge {
+  display: flex;
+  justify-content: center;
+  margin-top: -46px;
+  margin-bottom: 6px;
+}
+.auth-lock-icon {
+  width: 86px;
+  height: 86px;
+  border-radius: 999px;
+  background: #2f3a4a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #eef2ff;
+  font-size: 38px;
+  box-shadow: 0 10px 30px rgba(47,58,74,0.06);
+}
+
+/* Title and subtitle */
+.hero-title.styled {
+  margin: 6px 0 4px;
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  color: #0b1220;
+}
+.sub-muted {
+  margin: 0 0 14px;
+  color: #6b7280;
+  font-size: 15px;
+  text-align: center;
+  line-height: 1.45;
+}
+
+/* ---------- Form rows ---------- */
+.auth-form.compact {
+  width: 100%;
+}
+
+/* Inline row for phone input + send button */
+.inline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* small icon at left of rows */
+.row-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+/* input wrapper for inline input (phone) */
+.inline-input-wrap {
+  flex: 1 1 auto;
+}
+
+/* common input styles */
+.auth-form input[type="text"],
+.auth-form input[type="tel"],
+.auth-form input[type="password"],
+.auth-form input[type="number"],
+.auth-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  background: #fff;
+  font-size: 15px;
+  color: #0b1220;
+  outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.auth-form input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 30px rgba(59,130,246,0.08);
+}
+
+/* send button placed right inside the inline row */
+.send-btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(180deg,#2b6ef6 0%,#2563eb 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(37,99,235,0.14);
+  flex-shrink: 0;
+}
+.send-btn[disabled] {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* notice inline */
+.notice-inline {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: left;
+}
+.notice-error {
+  background: #fff1f2;
+  color: #7f1d1d;
+  border: 1px solid #ffd6d9;
+}
+.notice-ok {
+  background: #eefbf3;
+  color: #0b6b3c;
+  border: 1px solid #d1f6dc;
+}
+
+/* ---------- OTP inputs + reset inline ---------- */
+.reset-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* otp input box group */
+.otp-inputs {
+  display: flex;
+  gap: 10px;
+}
+
+/* single OTP input */
+.otp-input {
+  width: 48px;
+  height: 48px;
+  text-align: center;
+  font-size: 18px;
+  border-radius: 8px;
+  border: 1px solid #e6e9ee;
+  background: #fff;
+  outline: none;
+}
+.otp-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 30px rgba(59,130,246,0.08);
+}
+
+/* inline reset button (beside OTP) */
+.auth-btn.small.reset-inline-btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(180deg,#16a34a 0%,#059669 100%);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.auth-btn.small.reset-inline-btn[disabled] {
+  opacity: 0.7;
+}
+
+/* ---------- New password row ---------- */
+.row-input {
+  margin-top: 12px;
+}
+.row-input input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  width: 100%;
+}
+
+/* password hint / strength */
+.password-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.strength-weak { color: #dc2626; }
+.strength-medium { color: #d97706; }
+.strength-strong { color: #16a34a; }
+
+/* ---------- Reset password full width button (fallback) ---------- */
+.auth-btn.small {
+  display: inline-block;
+  background: linear-gradient(180deg,#1077ff 0%,#0a58d3 100%);
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+.auth-btn.small[disabled] {
+  opacity: 0.7;
+}
+
+/* ---------- Bottom links ---------- */
+.link-primary.small {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+.link-muted.small {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+/* smaller text utility */
+.small { font-size: 13px; }
+
+/* responsive */
+@media (max-width: 520px) {
+  .auth-card.slim { width: calc(100% - 36px); padding: 20px; }
+  .otp-input { width: 44px; height: 44px; }
+  .auth-lock-icon { width: 72px; height: 72px; font-size: 34px; }
+}
+/* ---------- Layout ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 50px 16px;
+  background: #f9fafb;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  color: #111827;
+}
+
+.auth-card.slim {
+  width: 420px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 26px rgba(0, 0, 0, 0.06);
+  padding: 28px;
+}
+
+.auth-body {
+  width: 100%;
+}
+
+/* ---------- Headings ---------- */
+.hero-title.styled {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.sub-muted {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+/* ---------- Tabs ---------- */
+.tab-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.tab {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.tab.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* ---------- Form ---------- */
+.auth-form {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.row-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+.row-input {
+  flex: 1;
+  position: relative;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  background: #fff;
+}
+.auth-form input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* ---------- Password Eye ---------- */
+.eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+/* ---------- Buttons ---------- */
+.auth-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.auth-btn:hover:not([disabled]) {
+  background: #1d4ed8;
+}
+.auth-btn[disabled] {
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* Google button */
+.google-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.google-btn:hover {
+  background: #f9fafb;
+}
+
+/* ---------- Toast Messages ---------- */
+.toast {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.toast-err {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.toast-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* ---------- OR Divider ---------- */
+.or-divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+.or-divider span {
+  margin: 0 10px;
+  white-space: nowrap;
+}
+
+/* ---------- Password Meter ---------- */
+.pw-meta {
+  margin-bottom: 14px;
+}
+.pw-bar {
+  height: 6px;
+  border-radius: 6px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+.pw-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s;
+}
+.pw-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #374151;
+}
+
+/* ---------- Terms ---------- */
+.terms-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  color: #374151;
+}
+.terms-row input {
+  margin-top: 3px;
+}
+.terms-row a {
+  color: #2563eb;
+  text-decoration: none;
+}
+.terms-row a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Bottom Links ---------- */
+.bottom-row {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.link-primary {
+  color: #2563eb;
+  font-weight: 500;
+  text-decoration: none;
+}
+.link-primary:hover {
+  text-decoration: underline;
+}
+.link-muted {
+  color: #6b7280;
+  text-decoration: none;
+}
+.link-muted:hover {
+  text-decoration: underline;
+}
+/* ---------- Page wrapper & card ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 18px;
+  background: #f7fafc;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #0b1220;
+}
+
+.auth-card.slim {
+  width: 520px;
+  max-width: calc(100% - 40px);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 34px rgba(10, 20, 30, 0.06);
+  padding: 26px;
+}
+
+/* small container inside card */
+.auth-body {
+  padding: 6px 8px;
+}
+
+/* lock badge at the top */
+.auth-lock-badge {
+  display: flex;
+  justify-content: center;
+  margin-top: -46px;
+  margin-bottom: 6px;
+}
+.auth-lock-icon {
+  width: 86px;
+  height: 86px;
+  border-radius: 999px;
+  background: #2f3a4a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #eef2ff;
+  font-size: 38px;
+  box-shadow: 0 10px 30px rgba(47,58,74,0.06);
+}
+
+/* title + subtitle */
+.hero-title.styled {
+  margin: 6px 0 4px;
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  color: #0b1220;
+}
+.sub-muted {
+  margin: 0 0 14px 0;
+  color: #6b7280;
+  font-size: 15px;
+  text-align: center;
+  line-height: 1.45;
+}
+
+/* ---------- Form rows ---------- */
+.auth-form.compact {
+  width: 100%;
+}
+
+/* Inline row for phone input + send button */
+.inline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* small icon at left of rows */
+.row-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+/* input wrapper for inline input (phone) */
+.inline-input-wrap {
+  flex: 1 1 auto;
+}
+
+/* common input styles */
+.auth-form input[type="text"],
+.auth-form input[type="tel"],
+.auth-form input[type="password"],
+.auth-form input[type="number"],
+.auth-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  background: #fff;
+  font-size: 15px;
+  color: #0b1220;
+  outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.auth-form input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 30px rgba(59,130,246,0.08);
+}
+
+/* send button placed to the right */
+.send-btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(180deg,#2b6ef6 0%,#2563eb 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(37,99,235,0.14);
+  flex-shrink: 0;
+}
+.send-btn[disabled] {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* notice inline */
+.notice-inline {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: left;
+}
+.notice-error {
+  background: #fff1f2;
+  color: #7f1d1d;
+  border: 1px solid #ffd6d9;
+}
+.notice-ok {
+  background: #eefbf3;
+  color: #0b6b3c;
+  border: 1px solid #d1f6dc;
+}
+
+/* ---------- OTP group (4 boxes) ---------- */
+.otp-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.otp-inputs {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.otp-input {
+  width: 54px;
+  height: 54px;
+  text-align: center;
+  font-size: 18px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  background: #fff;
+  outline: none;
+}
+.otp-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 30px rgba(59,130,246,0.08);
+}
+
+/* ---------- New password row ---------- */
+.row.small-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.row-input {
+  flex: 1;
+}
+.row-input input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* password hint / strength */
+.password-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.strength-weak { color: #dc2626; }
+.strength-medium { color: #d97706; }
+.strength-strong { color: #16a34a; }
+
+/* ---------- Reset button (full width below password) ---------- */
+.primary-reset-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 6px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(180deg,#1373ff 0%,#0a58d3 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(19,115,255,0.18);
+}
+.primary-reset-btn[disabled] {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* ---------- Bottom links ---------- */
+.link-primary.small {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+.link-muted.small {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+/* small text utility */
+.small { font-size: 13px; }
+
+/* accessibility sr-only */
+.sr-only {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px,1px,1px,1px);
+  white-space: nowrap;
+}
+
+/* responsive */
+@media (max-width: 520px) {
+  .auth-card.slim { width: calc(100% - 36px); padding: 20px; }
+  .otp-input { width: 46px; height: 46px; }
+  .auth-lock-icon { width: 72px; height: 72px; font-size: 34px; }
+}
+/* ---------- Base (desktop-first) ---------- */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 18px;
+  background: linear-gradient(90deg, rgba(235,245,255,1) 0%, rgba(240,255,240,0.7) 100%); /* subtle */
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  color: #0b1220;
+}
+
+.auth-card.slim {
+  width: 420px;
+  max-width: 96%;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 34px rgba(10, 20, 30, 0.06);
+  padding: 28px;
+  margin: 12px;
+  box-sizing: border-box;
+}
+
+.auth-body { width: 100%; }
+
+/* lock badge */
+.auth-lock-badge {
+  display: flex;
+  justify-content: center;
+  margin-top: -46px;
+  margin-bottom: 8px;
+}
+.auth-lock-icon {
+  width: 74px;
+  height: 74px;
+  border-radius: 999px;
+  background: #2f3a4a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #eef2ff;
+  font-size: 30px;
+  box-shadow: 0 10px 30px rgba(47,58,74,0.06);
+}
+
+/* headings */
+.hero-title.styled {
+  margin: 8px 0 6px;
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+}
+.sub-muted {
+  margin: 0 0 14px;
+  color: #6b7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* tabs */
+.tab-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  color: #334155;
+}
+.tab.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+}
+
+/* form rows */
+.auth-form { width: 100%; }
+.row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.row-icon {
+  width: 40px;
+  height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  color: #475569;
+  flex-shrink: 0;
+}
+.row-input { flex: 1; position: relative; }
+
+/* inputs */
+.auth-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  font-size: 15px;
+  color: #0b1220;
+  background: #fff;
+  box-sizing: border-box;
+}
+.auth-form input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 6px 20px rgba(37,99,235,0.08);
+}
+
+/* eye button (password) */
+.eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* main action button */
+.auth-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(180deg,#16a34a 0%,#059669 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 8px;
+  box-shadow: 0 10px 30px rgba(16,185,129,0.12);
+}
+.auth-btn[disabled] { opacity: 0.7; cursor: default; }
+
+/* OR divider */
+.or-divider { display:flex; align-items:center; gap:8px; margin:14px 0; font-size:12px; color:#6b7280; }
+.or-divider::before, .or-divider::after { content:""; flex:1; height:1px; background:#e6e9ee; }
+
+/* google btn */
+.google-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  display: flex; align-items:center; justify-content:center; gap:8px;
+  background:#fff; cursor:pointer; margin-top:8px;
+}
+
+/* toast */
+.toast { padding:10px; border-radius:10px; margin-bottom:10px; font-size:14px; }
+.toast-err { background:#fff1f2; color:#b91c1c; }
+.toast-ok { background:#dcfce7; color:#166534; }
+
+/* bottom links */
+.bottom-row, .fp-bottom-links, .link-row { display:flex; justify-content:space-between; margin-top:14px; }
+.link-primary { color:#2563eb; text-decoration:none; font-weight:600; }
+.link-muted { color:#6b7280; text-decoration:none; }
+
+/* OTP styles (desktop) */
+.otp-inputs { display:flex; gap:10px; margin-top:6px; }
+.otp-input { width:54px; height:54px; text-align:center; font-size:18px; border-radius:10px; border:1px solid #e6e9ee; }
+.otp-input:focus { border-color:#2563eb; box-shadow:0 8px 24px rgba(37,99,235,0.08); }
+
+/* helper small */
+.small { font-size:13px; color:#6b7280; }
+
+/* ---------- Mobile specific fixes ---------- */
+@media (max-width: 480px) {
+  .auth-wrap {
+    padding: 28px 12px;
+  }
+
+  /* narrow card, centered */
+  .auth-card.slim {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 8px;
+  }
+
+  /* scale headings */
+  .hero-title.styled { font-size: 22px; line-height:1.1; margin-bottom:10px; }
+  .sub-muted { font-size:13px; margin-bottom:12px; }
+
+  /* tabs stack into two compact pills; keep them side-by-side but larger tap area */
+  .tab-row { gap: 8px; }
+  .tab { padding: 10px 8px; font-size: 14px; border-radius: 10px; }
+
+  /* make row icon smaller and left padding on inputs larger on mobile */
+  .row-icon { width: 36px; height: 36px; font-size: 14px; }
+  .row-input { min-width: 0; }
+
+  /* Inputs: slightly taller, full width, larger text for ease of tapping */
+  .auth-form input { padding: 12px 12px; font-size: 15px; border-radius: 10px; }
+
+  /* Eye button inside password: ensure it sits inside input area */
+  .eye-btn { right: 8px; font-size: 16px; }
+
+  /* Buttons larger & full width */
+  .auth-btn { padding: 14px; font-size: 16px; border-radius: 12px; }
+
+  /* OTP: smaller boxes that fit on one row */
+  .otp-inputs { gap: 8px; margin-top: 8px; justify-content: flex-start; }
+  .otp-input { width: 44px; height: 44px; font-size: 16px; border-radius: 8px; }
+
+  /* Fix the inline send button (on the phone field) so it doesn't overlap on very narrow screens:
+     make the send button a floating element but shrink when space is tight. */
+  .inline-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .inline-input-wrap { flex: 1 1 auto; min-width: 0; }
+  .send-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  /* ensure icons inside inputs don't overflow on very small screens */
+  .row-icon svg, .row-icon { max-width: 100%; }
+
+  /* bottom links stacked for nicer spacing */
+  .bottom-row, .fp-bottom-links { flex-direction: column; gap: 8px; align-items: stretch; }
+  .bottom-row a, .fp-bottom-links a { text-align: center; display: block; }
+
+  /* reduce heavy shadows on mobile */
+  .auth-card.slim { box-shadow: 0 6px 18px rgba(10,20,30,0.05); }
+
+  /* reduce OTP/lock icon size */
+  .auth-lock-icon { width: 64px; height: 64px; font-size: 26px; }
+}
+
+/* optional: extra small screens (<=360px) */
+@media (max-width: 360px) {
+  .otp-input { width: 40px; height: 40px; font-size: 15px; }
+  .tab { padding: 10px 6px; font-size: 13px; }
+  .auth-card.slim { padding: 16px; }
+  .hero-title.styled { font-size: 20px; }
+}
+/* ---------- Mobile typography adjustments ---------- */
+@media (max-width: 480px) {
+  /* shrink input text + padding */
+  .auth-form input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  /* shrink tab buttons text */
+  .tab {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  /* shrink sign in / reset buttons */
+  .auth-btn,
+  .primary-reset-btn {
+    font-size: 15px;
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  /* shrink google button text */
+  .google-btn {
+    font-size: 14px;
+    padding: 12px;
+  }
+
+  /* OTP boxes: slightly smaller so they don’t dominate */
+  .otp-input {
+    height: 44px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  /* headings */
+  .hero-title.styled {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+  .sub-muted {
+    font-size: 13px;
+  }
+}
+@media (max-width: 480px) {
+  /* Slimmer card on mobile */
+  .auth-card.slim {
+    padding: 16px 14px;   /* less padding than desktop */
+    border-radius: 12px;
+  }
+
+  /* tighter spacing inside form */
+  .row {
+    margin-bottom: 10px;
+  }
+
+  /* reduce top margin of buttons */
+  .auth-btn,
+  .primary-reset-btn {
+    margin-top: 6px;
+  }
+
+  /* bottom links spacing */
+  .bottom-row, .fp-bottom-links {
+    margin-top: 14px;
+  }
+}
+@media (max-width: 480px) {
+  /* Tabs row: make them equal width and shorter */
+  .tab-row {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 8px 6px;         /* reduce padding (height) */
+    font-size: 13px;          /* smaller font for mobile */
+    border-radius: 8px;       /* slightly smaller radius */
+    text-align: center;
+    white-space: nowrap;      /* keep text on one line */
+  }
+
+  /* Active tab still stands out */
+  .tab.active {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.15);
+  }
+}
+@media (max-width: 480px) {
+  /* Google button slimmer */
+  .google-btn {
+    font-size: 13px;        /* smaller text */
+    padding: 10px;          /* less height */
+    border-radius: 8px;     /* match tab style */
+    gap: 6px;               /* reduce space between icon + text */
+  }
+
+  .google-btn svg {
+    font-size: 14px;        /* smaller Google icon */
+  }
+}
+@media (max-width: 480px) {
+  /* Slimmer main Sign In / Reset buttons */
+  .auth-btn,
+  .primary-reset-btn {
+    font-size: 14px;       /* slightly smaller text */
+    padding: 11px;         /* reduce height */
+    border-radius: 8px;    /* match other buttons */
+    font-weight: 600;      /* keep bold for emphasis */
+  }
+}
+@media (max-width: 480px) {
+  /* Slimmer input fields */
+  .auth-form input {
+    font-size: 14px;        /* smaller text */
+    padding: 10px 12px;     /* reduce height */
+    border-radius: 8px;     /* match buttons/tabs */
+  }
+
+  /* OTP inputs compact */
+  .otp-input {
+    height: 42px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  /* Row icons smaller so inputs don't look too tall */
+  .row-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  /* Adjust eye icon for password */
+  .eye-btn {
+    right: 8px;
+    font-size: 14px;
+  }
+}
+/* Terms row styling */
+.terms-row {
+  display: flex;
+  align-items: flex-start;   /* align checkbox with top of text */
+  gap: 8px;                  /* space between checkbox and text */
+  margin: 12px 0;
+}
+
+.terms-row input[type="checkbox"] {
+  margin: 2px 0 0 0;         /* align tick with first line of text */
+  width: 16px;
+  height: 16px;
+}
+
+.terms-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.terms-text a {
+  color: #2563eb;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.terms-text a:hover {
+  text-decoration: underline;
+}
+/* ---------- Terms row entrance animations ---------- */
+/* Keyframes */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Apply animations to checkbox and text with a small stagger */
+.terms-row {
+  /* ensure it doesn't jump layout when animating */
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+/* animate checkbox: quick fade + slight upward motion */
+.terms-row input[type="checkbox"] {
+  animation: fadeInUp 360ms ease-out 0s both;
+  /* reduce motion if user prefers reduced motion */
+  will-change: transform, opacity;
+}
+
+/* animate the text slightly after checkbox */
+.terms-row .terms-text {
+  animation: fadeIn 420ms ease-out 120ms both;
+  will-change: opacity;
+}
+
+/* Optional: make links appear a little later for polish */
+.terms-row .terms-text a {
+  animation: fadeIn 420ms ease-out 220ms both;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .terms-row input[type="checkbox"],
+  .terms-row .terms-text,
+  .terms-row .terms-text a {
+    animation: none !important;
+  }
+}
+/* =========================
+   Entrance animations for
+   Login, Signup & Forgot pages
+   ========================= */
+
+/* Keyframes */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUpLarge {
+  0% { opacity: 0; transform: translateY(18px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Ease / timing tokens */
+:root {
+  --auth-anim-ease: cubic-bezier(.2,.9,.2,1);
+  --auth-anim-base: 340ms;
+  --auth-anim-stagger: 70ms;
+}
+
+/* Animate the card itself (subtle lift + fade) */
+.auth-card.slim {
+  animation: fadeInUpLarge var(--auth-anim-base) var(--auth-anim-ease) both;
+  will-change: transform, opacity;
+}
+
+/* Container to scope form-row animations, apply only once on page render */
+.auth-form {
+  /* no animation here directly — animate children */
+}
+
+/* Animate each main .row inside forms with a small staggered delay.
+   We use :nth-child to create a natural cascade. If your form has non-row children,
+   adjust selectors accordingly (e.g., .auth-form > .row). */
+.auth-form .row,
+.auth-form .row.small-row,
+.auth-form .inline-row {
+  opacity: 0;
+  transform: translateY(6px);
+  animation-name: fadeInUp;
+  animation-duration: var(--auth-anim-base);
+  animation-timing-function: var(--auth-anim-ease);
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+
+/* stagger using nth-of-type — safe enough for typical forms */
+.auth-form .row:nth-of-type(1)    { animation-delay: calc(var(--auth-anim-stagger) * 0); }
+.auth-form .row:nth-of-type(2)    { animation-delay: calc(var(--auth-anim-stagger) * 1); }
+.auth-form .row:nth-of-type(3)    { animation-delay: calc(var(--auth-anim-stagger) * 2); }
+.auth-form .row:nth-of-type(4)    { animation-delay: calc(var(--auth-anim-stagger) * 3); }
+.auth-form .row:nth-of-type(5)    { animation-delay: calc(var(--auth-anim-stagger) * 4); }
+.auth-form .row:nth-of-type(6)    { animation-delay: calc(var(--auth-anim-stagger) * 5); }
+
+/* If your markup uses .inline-row or other row-like groups, ensure they also animate —
+   add them with slightly later delays. */
+.auth-form .inline-row { animation-delay: calc(var(--auth-anim-stagger) * 1.5); }
+.auth-form .reset-row  { animation-delay: calc(var(--auth-anim-stagger) * 2.0); }
+
+/* OTP group appears after basic rows */
+.otp-inputs {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeInUp var(--auth-anim-base) var(--auth-anim-ease) both;
+  animation-delay: calc(var(--auth-anim-stagger) * 3.5);
+  will-change: transform, opacity;
+}
+
+/* Buttons fade in slightly later for emphasis */
+.auth-btn,
+.primary-reset-btn,
+.google-btn,
+.send-btn {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeInUp var(--auth-anim-base) var(--auth-anim-ease) both;
+  animation-delay: calc(var(--auth-anim-stagger) * 4.5);
+  will-change: transform, opacity;
+}
+
+/* Terms row: animate checkbox then text (staggered) */
+.terms-row {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: fadeInUp var(--auth-anim-base) var(--auth-anim-ease) both;
+  animation-delay: calc(var(--auth-anim-stagger) * 5.2);
+}
+.terms-row input[type="checkbox"] {
+  /* tiny pop-in for checkbox */
+  animation: fadeInUp 300ms var(--auth-anim-ease) both;
+  animation-delay: calc(var(--auth-anim-stagger) * 5.0);
+}
+.terms-row .terms-text {
+  animation: fadeIn 320ms var(--auth-anim-ease) both;
+  animation-delay: calc(var(--auth-anim-stagger) * 5.3);
+}
+
+/* Small utility: force card children to preserve their final appearance
+   (useful when animation-fill-mode is 'both') */
+.auth-card.slim * {
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Prefer-reduced-motion: disable animations for users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  .auth-card.slim,
+  .auth-form .row,
+  .inline-row,
+  .reset-row,
+  .otp-inputs,
+  .auth-btn,
+  .primary-reset-btn,
+  .google-btn,
+  .send-btn,
+  .terms-row,
+  .terms-row input[type="checkbox"],
+  .terms-row .terms-text {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

@@ -8,6 +8,9 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+// forgot-password (in-app OTP) router
+import forgotRouter from "./router/forgot.js";
+
 dotenv.config();
 
 const app = express();
@@ -27,8 +30,7 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // allow non-browser requests (curl, Postman) where origin may be undefined
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // allow non-browser tools
     if (typeof origin === "string" && origin.startsWith("file://")) return callback(null, false);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error("CORS not allowed"), false);
@@ -45,6 +47,9 @@ app.use((req, res, next) => {
   next();
 });
 
+/* mount forgot-password router (in-app OTP) */
+app.use("/auth", forgotRouter);
+
 /* ----------------- HTTP + Socket.IO ----------------- */
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer, {
@@ -57,16 +62,35 @@ const io = new SocketIOServer(httpServer, {
 });
 
 /* ----------------- Models ----------------- */
-// User
+/**
+ * User model:
+ *  - phone is required (digits-only expected)
+ *  - email is optional (sparse unique)
+ *  - passwordHash is stored (bcrypt)
+ */
 const userSchema = new mongoose.Schema(
   {
-    name: String,
-    email: { type: String, unique: true, required: true },
-    password: String,
+    name: { type: String, required: true },
+    email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
+    phone: { type: String, required: true, unique: true, trim: true },
+    passwordHash: { type: String, required: true },
     role: { type: String, enum: ["user", "admin"], default: "user" },
   },
   { timestamps: true }
 );
+
+// helper to set password
+userSchema.methods.setPassword = async function (plain) {
+  const salt = await bcrypt.genSalt(10);
+  this.passwordHash = await bcrypt.hash(plain, salt);
+};
+
+// helper to verify password
+userSchema.methods.verifyPassword = async function (plain) {
+  if (this.passwordHash) return bcrypt.compare(plain, this.passwordHash);
+  return false;
+};
+
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 // Counter (for sequences)
@@ -95,7 +119,7 @@ const orderSchema = new mongoose.Schema(
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 
 /* ----------------- Auth helpers ----------------- */
-function auth(req, res, next) {
+function authMiddleware(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: "No token provided" });
@@ -119,10 +143,8 @@ async function getNextSequence(name) {
 }
 
 /* ----------------- Socket.IO admin namespace ----------------- */
-/* Use a dedicated namespace for admin sockets so only admins receive admin events */
 const adminNs = io.of("/admin");
 
-// Authenticate sockets connecting to /admin
 adminNs.use((socket, next) => {
   try {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
@@ -147,18 +169,15 @@ adminNs.on("connection", (socket) => {
 /* ----------------- Twilio SMS helper (optional) ----------------- */
 const TW_SID = process.env.TWILIO_ACCOUNT_SID;
 const TW_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TW_FROM = process.env.TWILIO_FROM; // e.g. "+1XXXXXXXXXX"
-const ADMIN_PHONE = process.env.ADMIN_PHONE; // e.g. "+91XXXXXXXXXX"
+const TW_FROM = process.env.TWILIO_FROM;
+const ADMIN_PHONE = process.env.ADMIN_PHONE;
 
 async function sendAdminSMSIfConfigured(order) {
   if (!TW_SID || !TW_TOKEN || !TW_FROM || !ADMIN_PHONE) {
-    // not configured — skip silently
     console.log("ℹ️ Twilio not configured; skipping SMS send.");
     return;
   }
-
   try {
-    // dynamic import so package is optional
     const TwilioModule = await import("twilio").catch((e) => {
       throw e;
     });
@@ -184,22 +203,14 @@ async function sendAdminSMSIfConfigured(order) {
 }
 
 /* ----------------- Status normalization ----------------- */
-/**
- * Accept common variants and map to canonical statuses used in DB:
- * - Delivered / Delivered -> Completed
- * - Delivering / Out for delivery -> Delivering
- * - In progress / progress -> In Progress
- * - pending -> Pending
- */
 const CANONICAL_STATUSES = ["Pending", "In Progress", "Delivering", "Completed"];
 function normalizeStatus(input) {
   if (!input) return null;
   const s = String(input).trim().toLowerCase();
   if (s === "delivered" || s === "delivered." || s === "complete" || s === "completed") return "Completed";
-  if (s.includes("deliver") && !s.includes("deliveri d")) return "Delivering"; // covers "delivering", "out for delivery"
+  if (s.includes("deliver") && !s.includes("deliveri d")) return "Delivering";
   if (s === "in progress" || s === "inprogress" || s === "progress") return "In Progress";
   if (s === "pending") return "Pending";
-  // title-case fallback
   const title = s
     .split(/\s+/)
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
@@ -211,51 +222,121 @@ function normalizeStatus(input) {
 /* ----------------- Routes ----------------- */
 app.get("/health", (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
-// signup
+/* ----------------- Helpers used in routes ----------------- */
+const onlyDigits = (s = "") => (s || "").toString().replace(/\D/g, "");
+
+/**
+ * Signup: requires name, phone, password. Email optional.
+ * Accepts: { name, phone, password, email? }
+ */
 app.post("/signup", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: "All fields are required" });
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(409).json({ error: "Email already exists" });
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ name, email, password: hashedPassword });
-    await newUser.save();
-    return res.status(201).json({ message: "User registered successfully" });
+    const { name, email, phone, password } = req.body;
+
+    if (!name || !phone || !password) {
+      return res.status(400).json({ error: "Name, phone and password are required." });
+    }
+
+    const normalizedPhone = onlyDigits(phone);
+
+    const existingPhone = await User.findOne({ phone: normalizedPhone });
+    if (existingPhone) return res.status(400).json({ error: "Phone already in use." });
+
+    if (email) {
+      const existingEmail = await User.findOne({ email: email.toLowerCase() });
+      if (existingEmail) return res.status(400).json({ error: "Email already in use." });
+    }
+
+    const user = new User({
+      name,
+      phone: normalizedPhone,
+      email: email ? email.toLowerCase() : undefined,
+    });
+
+    await user.setPassword(password);
+    await user.save();
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    return res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: { id: user._id, name: user.name, phone: user.phone, email: user.email },
+    });
   } catch (err) {
-    if (err?.code === 11000) return res.status(409).json({ error: "Email already exists" });
     console.error("❌ /signup error:", err);
+    if (err?.code === 11000) return res.status(409).json({ error: "Duplicate value" });
     return res.status(500).json({ error: "Server error" });
   }
 });
 
-// login
+/**
+ * Login: accepts either identifier (email or phone) OR email OR phone + password.
+ * Accepts: { identifier, password } OR { email, password } OR { phone, password }
+ *
+ * Backwards compatibility:
+ * If existing user docs have `password` field (legacy) we attempt bcrypt.compare on that field,
+ * and also try plain-text match as last resort.
+ */
 app.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Email & password required" });
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found" });
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) return res.status(401).json({ error: "Invalid password" });
+    const { identifier, email, phone, password } = req.body;
+
+    if (!password) return res.status(400).json({ error: "Password is required." });
+
+    const id = (identifier || email || phone || "").toString().trim();
+    if (!id) return res.status(400).json({ error: "Provide email or phone number to sign in." });
+
+    let user = null;
+    if (/\S+@\S+\.\S+/.test(id)) {
+      user = await User.findOne({ email: id.toLowerCase() });
+    } else {
+      user = await User.findOne({ phone: onlyDigits(id) });
+    }
+
+    if (!user) return res.status(401).json({ error: "Invalid credentials." });
+
+    // prefer new passwordHash method
+    let valid = false;
+    if (user.passwordHash) {
+      valid = await bcrypt.compare(password, user.passwordHash);
+    } else if (user.password) {
+      // legacy: attempt bcrypt compare then plaintext fallback
+      try {
+        valid = await bcrypt.compare(password, user.password);
+      } catch (e) {
+        valid = password === user.password;
+      }
+    }
+
+    if (!valid) return res.status(401).json({ error: "Invalid credentials." });
+
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    return res.json({ message: "Login successful", token });
+    return res.json({
+      message: "Login successful",
+      token,
+      user: { id: user._id, name: user.name, phone: user.phone, email: user.email },
+    });
   } catch (err) {
     console.error("❌ /login error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
 
-// profile
-app.get("/profile", auth, async (req, res) => {
-  const user = await User.findById(req.user.id).select("-password");
-  if (!user) return res.status(404).json({ error: "User not found" });
-  res.json(user);
+/* profile */
+app.get("/profile", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-passwordHash -__v");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (err) {
+    console.error("❌ /profile error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 /* ----------------- Orders (user) ----------------- */
-/* POST /orders -> create with orderNumber */
-app.post("/orders", auth, async (req, res) => {
+app.post("/orders", authMiddleware, async (req, res) => {
   try {
     const { service, pickupAddress, phone, notes, clothTypes, pickupDate, pickupTime, delivery, lat, lng } = req.body;
     if (!service) return res.status(400).json({ error: "Service is required" });
@@ -276,7 +357,6 @@ app.post("/orders", auth, async (req, res) => {
       status: "Pending",
     });
 
-    // Emit to all connected admins in /admin namespace
     try {
       adminNs.emit("admin:newOrder", created);
       console.log("📣 Emitted admin:newOrder", created._id);
@@ -284,7 +364,6 @@ app.post("/orders", auth, async (req, res) => {
       console.warn("⚠️ Could not emit socket event:", e);
     }
 
-    // Optionally send SMS to admin (safe, non-blocking)
     sendAdminSMSIfConfigured(created).catch((err) => console.warn("sendAdminSMSIfConfigured error:", err));
 
     return res.status(201).json(created);
@@ -294,8 +373,7 @@ app.post("/orders", auth, async (req, res) => {
   }
 });
 
-/* GET /orders -> user's orders */
-app.get("/orders", auth, async (req, res) => {
+app.get("/orders", authMiddleware, async (req, res) => {
   try {
     const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
     res.json(orders);
@@ -305,8 +383,7 @@ app.get("/orders", auth, async (req, res) => {
   }
 });
 
-/* DELETE /orders/:id -> cancel (user only) */
-app.delete("/orders/:id", auth, async (req, res) => {
+app.delete("/orders/:id", authMiddleware, async (req, res) => {
   try {
     const order = await Order.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
     if (!order) return res.status(404).json({ error: "Order not found" });
@@ -318,10 +395,9 @@ app.delete("/orders/:id", auth, async (req, res) => {
 });
 
 /* ----------------- Admin routes ----------------- */
-/* GET /admin/orders -> all orders */
-app.get("/admin/orders", auth, adminOnly, async (req, res) => {
+app.get("/admin/orders", authMiddleware, adminOnly, async (req, res) => {
   try {
-    const orders = await Order.find().populate("userId", "name email").sort({ createdAt: -1 });
+    const orders = await Order.find().populate("userId", "name email phone").sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
     console.error("❌ GET /admin/orders error:", err);
@@ -329,8 +405,7 @@ app.get("/admin/orders", auth, adminOnly, async (req, res) => {
   }
 });
 
-/* PATCH /admin/orders/:id/status -> update status (normalizes input and accepts aliases) */
-app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
+app.patch("/admin/orders/:id/status", authMiddleware, adminOnly, async (req, res) => {
   try {
     const raw = req.body?.status;
     const normalized = normalizeStatus(raw);
@@ -338,10 +413,9 @@ app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
       return res.status(400).json({ error: `Status must be one of: ${CANONICAL_STATUSES.join(", ")} (aliases allowed)` });
     }
 
-    const updated = await Order.findByIdAndUpdate(req.params.id, { status: normalized }, { new: true }).populate("userId", "name email");
+    const updated = await Order.findByIdAndUpdate(req.params.id, { status: normalized }, { new: true }).populate("userId", "name email phone");
     if (!updated) return res.status(404).json({ error: "Order not found" });
 
-    // Emit update to admin namespace (so other admins see changes)
     try {
       adminNs.emit("admin:orderUpdated", updated);
     } catch (e) {
@@ -355,7 +429,7 @@ app.patch("/admin/orders/:id/status", auth, adminOnly, async (req, res) => {
   }
 });
 
-app.get("/admin/statuses", auth, adminOnly, (req, res) => {
+app.get("/admin/statuses", authMiddleware, adminOnly, (req, res) => {
   res.json({ statuses: CANONICAL_STATUSES });
 });
 

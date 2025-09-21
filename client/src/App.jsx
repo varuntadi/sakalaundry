@@ -7,13 +7,14 @@ import "./styles/responsive.css";
 import "./styles/theme.css";
 import "./styles/orders.css";
 
-/* PAGES (case-sensitive imports — ensure filenames match exactly) */
+/* PAGES */
 import Landing from "./pages/Landing.jsx";
 import About from "./pages/About.jsx";
 import ContactUs from "./pages/ContactUs.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
-import Profile from "./pages/Profile.jsx"; // ensure file exists with this capitalization
+import Profile from "./pages/Profile.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";  // ✅ add import
 
 const Orders = React.lazy(() => import("./pages/Orders.jsx"));
 const MyOrders = React.lazy(() => import("./pages/MyOrders.jsx"));
@@ -25,7 +26,7 @@ import Footer from "./components/Footer.jsx";
 import Protected from "./components/Protected.jsx";
 import AdminOnly from "./components/AdminOnly.jsx";
 
-/* AppExpiryHandler unchanged (keeps session expiry logic) */
+/* ----------------- Session Expiry ----------------- */
 function AppExpiryHandler() {
   const navigate = useNavigate();
   useEffect(() => {
@@ -54,18 +55,26 @@ function AppExpiryHandler() {
           navigate("/login?reason=session_expired", { replace: true });
         }, timeLeft);
       } catch (e) {
-        try { localStorage.removeItem("token"); localStorage.removeItem("authExpiry"); } catch {}
+        try {
+          localStorage.removeItem("token");
+          localStorage.removeItem("authExpiry");
+        } catch {}
         navigate("/login?reason=session_expired", { replace: true });
       }
     }
     scheduleOrCheck();
     function onStorage(e) {
       if (e.key === "authExpiry") {
-        if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
         scheduleOrCheck();
       }
       if (e.key === "token" && e.newValue === null) {
-        try { localStorage.removeItem("authExpiry"); } catch {}
+        try {
+          localStorage.removeItem("authExpiry");
+        } catch {}
         navigate("/login?reason=session_expired", { replace: true });
       }
     }
@@ -82,6 +91,7 @@ function Page({ children, full = false }) {
   return full ? <>{children}</> : <div className="container">{children}</div>;
 }
 
+/* ----------------- MAIN APP ----------------- */
 export default function App() {
   return (
     <BrowserRouter>
@@ -96,6 +106,7 @@ export default function App() {
 
             <Route path="/login" element={<Page><Login /></Page>} />
             <Route path="/signup" element={<Page><Signup /></Page>} />
+            <Route path="/forgot-password" element={<Page><ForgotPassword /></Page>} /> {/* ✅ Added */}
 
             <Route
               path="/profile"
@@ -108,7 +119,6 @@ export default function App() {
               }
             />
 
-            {/* Booking page (protected) */}
             <Route
               path="/orders"
               element={
@@ -126,7 +136,6 @@ export default function App() {
               }
             />
 
-            {/* My Orders (protected) */}
             <Route
               path="/my-orders"
               element={
@@ -155,6 +164,7 @@ export default function App() {
               }
             />
 
+            {/* wildcard LAST */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </section>

@@ -1,0 +1,267 @@
+/* Responsive, polished login styles
+   Desktop: centered card (max-width)
+   Mobile: edge-to-edge card (full width)
+*/
+
+:root{
+  --bg: #f7fbfc;
+  --card-bg: #ffffff;
+  --accent: #4338ca;
+  --muted: #6b7280;
+  --input-border: #e6eef8;
+  --shadow: 0 10px 30px rgba(2,6,23,0.06);
+}
+
+/* page background */
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--bg) 0%, #ffffff 60%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* container: responsive card */
+.container {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+}
+
+/* Desktop layout: constrain and center */
+@media (min-width: 768px) {
+  .container {
+    max-width: 820px;      /* make it wider on desktop, like your screenshot */
+    margin: 20px auto;
+    padding: 28px 36px;
+    border-radius: 14px;
+  }
+}
+
+/* On small screens, make it feel edge-to-edge */
+@media (max-width: 480px) {
+  .page { padding: 0; }
+  .container {
+    width: 100%;
+    border-radius: 0;
+    padding: 18px;
+    box-shadow: none;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+/* header */
+.header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #fb7185);
+  color: #fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:20px;
+  flex: 0 0 56px;
+}
+.title {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+  font-weight: 700;
+}
+.subtitle {
+  margin: 2px 0 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* form */
+.form {
+  margin-top: 4px;
+}
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+.label {
+  display: block;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* inputs */
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: #fbfdff;
+  font-size: 15px;
+  color: #0f172a;
+  box-sizing: border-box;
+  transition: border-color .12s ease, box-shadow .12s ease;
+  outline: none; /* remove ugly default */
+}
+.input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 8px 20px rgba(99,102,241,0.06);
+}
+
+/* password wrapper to place eye button */
+.passWrap {
+  position: relative;
+}
+.eye {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 16px;
+  padding: 6px;
+}
+
+/* toast */
+.toast {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.toastOk { background: #ecfdf5; color: #065f46; border: 1px solid #bbf7d0; }
+.toastErr { background: #fff1f2; color: #991b1b; border: 1px solid #fecaca; }
+.toastIcon { font-size: 14px; }
+
+/* submit */
+.submit {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin-top: 6px;
+}
+.submit:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* spinner */
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* footer links */
+.footer {
+  margin-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.left, .right { font-size: 14px; color: #374151; }
+.link { color: var(--accent); text-decoration: none; font-weight: 600; }
+.link:hover { text-decoration: underline; }
+
+/* on narrow screens stack footer */
+@media (max-width: 480px) {
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .right { text-align: right; }
+}
+/* Alert modal + backdrop */
+.alertBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.36);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.alertBox {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 12px 40px rgba(2,6,23,0.18);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* Icon */
+.alertIcon {
+  flex: 0 0 46px;
+  height: 46px;
+  width: 46px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+.alertIcon { background: #fee2e2; color: #991b1b; } /* default error look */
+.alertBox .alertIcon + .alertContent { flex: 1; }
+
+/* If success, override icon color using inline class? Simpler: use msg.type to render different emoji.
+   For a richer style you can add .alertOkIcon and .alertErrIcon classes and toggle them. */
+
+.alertContent { display:flex; flex-direction:column; gap:6px; }
+.alertTitle { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
+.alertText { margin: 0; color: #475569; font-size: 14px; }
+
+/* Actions */
+.alertActions { display:flex; align-items:center; justify-content:flex-end; width:100%; margin-left: 6px; }
+.alertOk {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #4338ca;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+}
+.alertOk:hover { opacity: 0.95; }
+
+/* If you want to change icon when success: */
+.alertBox[data-type="ok"] .alertIcon {
+  background: #ecfdf5;
+  color: #065f46;
+}

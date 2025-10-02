@@ -100,3 +100,34 @@ router.post("/login", async (req, res) => {
 });
 
 module.exports = router;
+// src/utils/auth.js
+const TOKEN_KEY = "jwt_token";
+
+export const auth = {
+  // Save token
+  setToken: (token) => {
+    localStorage.setItem(TOKEN_KEY, token);
+  },
+
+  // Get token
+  getToken: () => {
+    return localStorage.getItem(TOKEN_KEY);
+  },
+
+  // Remove token
+  clearToken: () => {
+    localStorage.removeItem(TOKEN_KEY);
+  },
+
+  // Get decoded user (if you want roles on frontend)
+  getUser: () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1])); // decode JWT payload
+      return payload; // { id, role }
+    } catch (err) {
+      return null;
+    }
+  },
+};

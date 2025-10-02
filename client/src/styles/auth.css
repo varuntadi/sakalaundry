@@ -1363,3 +1363,78 @@
     transform: none !important;
   }
 }
+/* ---------- Mobile full-width auth card ---------- */
+@media (max-width: 480px) {
+  .auth-wrap {
+    padding: 0; /* remove extra padding */
+  }
+
+  .auth-card.slim {
+    width: 100%;        /* stretch full width */
+    max-width: 100%;    /* no cap */
+    min-height: 100vh;  /* full screen height */
+    border-radius: 0;   /* remove rounded corners */
+    box-shadow: none;   /* flat, no floating shadow */
+    padding: 24px 16px; /* breathing space inside */
+  }
+
+  .auth-body {
+    width: 100%;
+  }
+}
+/* Prevent login/signup page from forcing extra height */
+.auth-page,
+.login-page,
+.signup-page {
+  min-height: auto !important;
+  height: auto !important;
+  padding-bottom: 1rem !important; /* keep just a little breathing room */
+}
+
+/* Remove extra bottom margin on form */
+.auth-form {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+/* Remove the useless empty box under login/signup */
+.auth-wrap.no-extra-space {
+  min-height: auto !important;
+  height: auto !important;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* keep it top aligned */
+  padding-bottom: 1rem;
+}
+/* Make the auth container only as tall as its content */
+.auth-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;   /* centers vertically */
+  min-height: 100vh;     /* use full screen height */
+  padding: 0;            /* remove extra padding */
+  margin: 0;
+}
+
+/* Card shouldn’t stretch */
+.auth-card {
+  height: auto !important;
+  min-height: auto !important;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  border-radius: 12px;
+}
+
+/* Fix form bottom spacing */
+.auth-form {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Reduce spacing under the bottom-row links */
+.bottom-row {
+  margin-top: 0.75rem;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}

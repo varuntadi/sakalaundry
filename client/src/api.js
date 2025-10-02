@@ -1,54 +1,39 @@
 // client/src/api.js
 import axios from "axios";
+import { auth } from "./auth";
 
-/* ----------------- Axios instance ----------------- */
+/** Uses VITE_API_URL set in Netlify (or local .env.local) */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000", // backend API URL
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true, // allow cookies if backend uses them
+  baseURL: import.meta.env.VITE_API_URL,
+  headers: { "Content-Type": "application/json" },
+  withCredentials: false, // we use Bearer tokens, not cookies
 });
 
-// Debug: log which API base URL is being used
-console.log("📡 API Base URL:", api.defaults.baseURL);
-
-/* ----------------- Request Interceptor ----------------- */
-// Attach token from localStorage to every request
+/** Attach token on every request */
 api.interceptors.request.use(
   (config) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (token) {
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (err) {
-      console.warn("⚠️ Could not read token from localStorage:", err);
+    const token = auth.token || localStorage.getItem("token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-/* ----------------- Response Interceptor ----------------- */
+/** If a protected API returns 401, log out and send to login */
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     const status = err?.response?.status;
-
-    if (status === 401) {
-      console.warn("⚠️ Unauthorized (401) → clearing token & redirecting");
-      try {
-        localStorage.removeItem("token");
-        localStorage.removeItem("authExpiry");
-      } catch (e) {
-        console.warn("⚠️ Could not clear localStorage:", e);
-      }
-      // Redirect to login with optional query param
+    const url = String(err?.config?.url || "");
+    // Don't redirect for the auth endpoints themselves
+    const isAuthEndpoint = /\/login|\/signup|\/forgot/i.test(url);
+    if (status === 401 && !isAuthEndpoint) {
+      try { auth.logout(); } catch {}
       window.location.href = "/login?reason=session_expired";
     }
-
     return Promise.reject(err);
   }
 );

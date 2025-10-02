@@ -1,0 +1,31 @@
+/* client/src/styles/chatwidget.css */
+.cw-container { font-family: Inter, Arial, sans-serif; }
+.cw-floating { position: fixed; right: 20px; bottom: 20px; z-index: 9999; }
+.cw-toggle { width:56px; height:56px; border-radius:999px; background:linear-gradient(90deg,#6366f1,#8b5cf6); color:white; border:none; box-shadow:0 8px 20px rgba(0,0,0,0.15); font-size:22px; cursor:pointer; }
+.cw-panel { width:320px; max-height:70vh; background:#fff; border-radius:12px; box-shadow:0 20px 40px rgba(2,6,23,0.2); overflow:hidden; display:flex; flex-direction:column; }
+.cw-header { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:linear-gradient(90deg,#4f46e5,#7c3aed); color:#fff; }
+.cw-title { font-weight:700; }
+.cw-sub { font-size:12px; opacity:0.9; }
+.cw-close { background:transparent; border:none; color:white; font-size:20px; cursor:pointer; }
+.cw-body { padding:12px; overflow:auto; flex:1; display:flex; flex-direction:column; gap:8px; }
+.cw-msg { max-width:86%; padding:8px 10px; border-radius:10px; word-wrap:break-word; }
+.cw-bot { align-self:flex-start; background:#f3f4f6; color:#111827; }
+.cw-user { align-self:flex-end; background:#eef2ff; color:#1f2937; }
+.cw-text { font-size:14px; line-height:1.3; }
+.cw-actions { display:flex; gap:8px; margin-top:6px; }
+.cw-action-btn { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:white; cursor:pointer; font-size:13px; }
+.cw-input { display:flex; gap:8px; padding:10px; border-top:1px solid #eee; }
+.cw-input input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; }
+.cw-send-btn { padding:8px 12px; border-radius:8px; background:#6366f1; color:#fff; border:none; cursor:pointer; }
+.typing-dots { display:inline-flex; gap:4px; align-items:center; padding:8px 10px; }
+.typing-dots span { width:6px; height:6px; background:#9ca3af; border-radius:50%; display:inline-block; animation:typing 1s infinite; }
+.typing-dots span:nth-child(2) { animation-delay:0.15s; }
+.typing-dots span:nth-child(3) { animation-delay:0.3s; }
+@keyframes typing { 0% { transform: translateY(0); opacity:0.6 } 50% { transform: translateY(-6px); opacity:1 } 100% { transform: translateY(0); opacity:0.6 } }
+
+/* ticket form */
+.cw-ticket-form { display:flex; flex-direction:column; gap:8px; padding:10px; border-top:1px solid #eee; }
+.cw-ticket-form input, .cw-ticket-form textarea { padding:8px; border-radius:8px; border:1px solid #e5e7eb; }
+.cw-ticket-actions { display:flex; gap:8px; justify-content:flex-end; }
+.cw-ticket-actions .cw-send { background:#10b981; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+.cw-ticket-actions .cw-cancel { background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }

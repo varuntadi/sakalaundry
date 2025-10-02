@@ -1,112 +1,128 @@
 // server/router/orders.js
-const express = require('express');
+const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
-const Counter = require('../models/counter');   // ensure server/models/counter.js exists
-const Order = require('../models/order');
+const Counter = require("../models/counter");
+const Order = require("../models/order");
+const requireAuth = require("../middleware/auth");
+const requireAdmin = require("../middleware/requireAdmin");
 
-/**
- * Helper: atomically increment and return a sequence value
- * Creates the counter document if it doesn't exist.
- */
+// Sequence helper
 async function getNextSequence(name) {
   const doc = await Counter.findByIdAndUpdate(
     { _id: name },
     { $inc: { seq: 1 } },
-    { new: true, upsert: true }
+    { new: true, upsert: true, setDefaultsOnInsert: true }
   );
   return doc.seq;
 }
 
-/* POST /orders
-   Creates an order and assigns a friendly orderNumber (auto-increment).
-*/
-router.post('/', async (req, res) => {
+/* ----------------- USER ROUTES ----------------- */
+router.post("/", requireAuth, async (req, res) => {
   try {
-    // get next order number
-    const orderNumber = await getNextSequence('orderNumber');
+    const {
+      service,
+      pickupAddress,
+      phone,
+      notes,
+      clothTypes,
+      pickupDate,
+      pickupTime,
+      delivery,
+      lat,
+      lng,
+    } = req.body;
 
-    // build payload. preserve any fields client sent (userId, service, etc.)
-    const payload = {
-      ...req.body,
+    if (!service) return res.status(400).json({ error: "Service is required" });
+
+    const orderNumber = await getNextSequence("orderNumber");
+    const created = await Order.create({
       orderNumber,
-      status: req.body.status || "Pending",
-    };
+      userId: req.user.id,
+      service,
+      clothTypes: clothTypes || [],
+      pickupAddress,
+      phone,
+      notes,
+      pickupDate,
+      pickupTime,
+      delivery: delivery || "regular",
+      lat,
+      lng,
+      status: "Pending",
+    });
 
-    const order = new Order(payload);
-    await order.save();
-    return res.status(201).json(order);
+    res.status(201).json(created);
   } catch (err) {
-    console.error("POST /orders error:", err);
-    return res.status(400).json({ error: err.message || "Failed to create order" });
+    console.error("❌ POST /orders error:", err);
+    res.status(500).json({ error: err.message || "Failed to create order" });
   }
 });
 
-/* GET /orders
-   List all orders (most-recent first). keeps populate('userId') like your old code.
-*/
-router.get('/', async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
-    const orders = await Order.find().populate('userId').sort({ createdAt: -1 });
-    return res.json(orders);
+    const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    res.json(orders);
   } catch (err) {
-    console.error("GET /orders error:", err);
-    return res.status(500).json({ error: err.message || "Could not fetch orders" });
+    console.error("❌ GET /orders error:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
 
-/* GET /orders/:id
-   Fetch single order by id
-*/
-router.get('/:id', async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('userId');
+    const order = await Order.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
     if (!order) return res.status(404).json({ error: "Order not found" });
-    return res.json(order);
+    res.json({ message: "Order canceled" });
   } catch (err) {
-    console.error("GET /orders/:id error:", err);
-    return res.status(500).json({ error: err.message || "Could not fetch order" });
+    console.error("❌ DELETE /orders/:id error:", err);
+    res.status(500).json({ error: "Failed to delete order" });
   }
 });
 
-/* PUT /orders/:id/status
-   Admin updates order status. Allowed: Pending, In Progress, Delivering, Completed
-*/
-router.put('/:id/status', async (req, res) => {
+/* ----------------- ADMIN ROUTES ----------------- */
+router.get("/admin/all", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { status } = req.body;
+    const orders = await Order.find()
+      .populate("userId", "name email phone")
+      .sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    console.error("❌ GET /admin/all error:", err);
+    res.status(500).json({ error: "Failed to fetch orders" });
+  }
+});
+
+router.patch("/admin/:id/status", requireAuth, requireAdmin, async (req, res) => {
+  try {
     const allowed = ["Pending", "In Progress", "Delivering", "Completed"];
-    if (!status || !allowed.includes(status)) {
-      return res.status(400).json({ error: "Invalid or missing status" });
+    const { status } = req.body;
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ error: `Status must be one of: ${allowed.join(", ")}` });
     }
 
-    const order = await Order.findByIdAndUpdate(
+    const updated = await Order.findByIdAndUpdate(
       req.params.id,
       { status },
       { new: true }
-    ).lean();
+    ).populate("userId", "name email phone");
 
-    if (!order) return res.status(404).json({ error: "Order not found" });
-
-    // Optionally: here you can emit a websocket event to notify clients in real-time.
-
-    return res.json(order);
+    if (!updated) return res.status(404).json({ error: "Order not found" });
+    res.json(updated);
   } catch (err) {
-    console.error("PUT /orders/:id/status error:", err);
-    return res.status(500).json({ error: err.message || "Could not update status" });
+    console.error("❌ PATCH /admin/:id/status error:", err);
+    res.status(500).json({ error: "Failed to update status" });
   }
 });
 
-/* DELETE /orders/:id
-   Cancel/delete an order
-*/
-router.delete('/:id', async (req, res) => {
+router.delete("/admin/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
-    const doc = await Order.findByIdAndDelete(req.params.id);
-    if (!doc) return res.status(404).json({ error: "Order not found" });
-    return res.json({ ok: true });
+    const deleted = await Order.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Order not found" });
+    res.json({ message: "Order deleted" });
   } catch (err) {
-    console.error("DELETE /orders/:id error:", err);
-    return res.status(500).json({ error: err.message || "Failed to delete order" });
+    console.error("❌ DELETE /admin/:id error:", err);
+    res.status(500).json({ error: "Failed to delete order" });
   }
 });
 

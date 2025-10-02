@@ -7,7 +7,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
 
 import forgotRouter from "./router/forgot.js";
 import ticketsRouter from "./router/tickets.js";
@@ -22,27 +21,37 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 
-/* ----------------- CORS ----------------- */
-const FALLBACK_FRONTEND = "http://localhost:5173";
-const FRONTEND_URL = process.env.FRONTEND_URL || FALLBACK_FRONTEND;
-const allowedOrigins = [
+/* ----------------- CORS (Netlify + localhost) ----------------- */
+/**
+ * In Render env set:
+ *   FRONTEND_URL=https://sakalaundry.netlify.app
+ * This block also allows Netlify preview URLs: https://<branch>--sakalaundry.netlify.app
+ */
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const allowlist = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:3000",
   FRONTEND_URL,
-].filter(Boolean);
+];
+const previewRegex = /^https:\/\/[a-z0-9-]+--sakalaundry\.netlify\.app$/i;
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // curl/server-to-server
+  if (allowlist.includes(origin)) return true;
+  if (previewRegex.test(origin)) return true;
+  return false;
+};
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (typeof origin === "string" && origin.startsWith("file://")) return callback(null, false);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS not allowed for: ${origin}`), false);
-    },
+    origin: (origin, cb) =>
+      isAllowedOrigin(origin)
+        ? cb(null, true)
+        : cb(new Error(`CORS not allowed: ${origin}`), false),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    credentials: false, // we use Bearer tokens, not cookies
+    credentials: false, // using Bearer tokens, not cookies
   })
 );
 
@@ -54,8 +63,11 @@ app.use((req, _res, next) => {
 
 /* ----------------- HTTP + Socket.IO ----------------- */
 const httpServer = http.createServer(app);
+
+// For Socket.IO, supply only string origins (regex not supported here)
+const socketAllow = allowlist.filter((o) => typeof o === "string");
 const io = new SocketIOServer(httpServer, {
-  cors: { origin: allowedOrigins, credentials: false },
+  cors: { origin: socketAllow, credentials: false },
   pingInterval: 25000,
   pingTimeout: 60000,
 });
@@ -108,7 +120,7 @@ const orderSchema = new Schema(
 const Order = models.Order || model("Order", orderSchema);
 
 /* ----------------- Helpers ----------------- */
-const JWT_SECRET = process.env.JWT_SECRET; // one true secret
+const JWT_SECRET = process.env.JWT_SECRET;
 const onlyDigits = (s = "") => (s || "").toString().replace(/\D/g, "");
 const CANONICAL_STATUSES = ["Pending", "In Progress", "Delivering", "Completed"];
 const normalizeStatus = (input) => {
@@ -129,25 +141,6 @@ async function getNextSequence(name) {
   );
   return doc.seq;
 }
-
-/* fingerprint log helper */
-const fp = (s) => crypto.createHash("sha256").update(String(s || "")).digest("hex").slice(0, 8);
-
-/* ----------------- Socket auth (admin ns) ----------------- */
-io.of("/admin").use((socket, next) => {
-  try {
-    const authToken = socket.handshake.auth?.token || socket.handshake.query?.token || "";
-    if (!authToken) return next(new Error("No token"));
-    const raw = typeof authToken === "string" && authToken.startsWith("Bearer ") ? authToken.slice(7) : authToken;
-    const payload = jwt.verify(raw, JWT_SECRET);
-    if (!payload || payload.role !== "admin") return next(new Error("Forbidden"));
-    socket.user = payload;
-    return next();
-  } catch (err) {
-    console.warn("adminNs auth error:", err.message || err);
-    return next(new Error("Authentication error"));
-  }
-});
 
 /* ----------------- Routers ----------------- */
 app.use("/auth", forgotRouter);
@@ -171,10 +164,13 @@ app.post("/signup", async (req, res) => {
     await user.setPassword(password);
     await user.save();
 
-    console.log("SIGN using JWT_SECRET fingerprint:", fp(JWT_SECRET));
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: "7d" });
 
-    res.status(201).json({ message: "User registered", token, user: { id: user._id, name, phone: user.phone, email: user.email, role: user.role } });
+    res.status(201).json({
+      message: "User registered",
+      token,
+      user: { id: user._id, name, phone: user.phone, email: user.email, role: user.role },
+    });
   } catch (err) {
     console.error("❌ /signup error:", err);
     if (err?.code === 11000) return res.status(409).json({ error: "Duplicate value" });
@@ -198,10 +194,13 @@ app.post("/login", async (req, res) => {
     const valid = await user.verifyPassword(password);
     if (!valid) return res.status(401).json({ error: "Invalid credentials." });
 
-    console.log("SIGN using JWT_SECRET fingerprint:", fp(JWT_SECRET));
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: "7d" });
 
-    res.json({ message: "Login successful", token, user: { id: user._id, name: user.name, phone: user.phone, email: user.email, role: user.role } });
+    res.json({
+      message: "Login successful",
+      token,
+      user: { id: user._id, name: user.name, phone: user.phone, email: user.email, role: user.role },
+    });
   } catch (err) {
     console.error("❌ /login error:", err);
     res.status(500).json({ error: "Server error" });
@@ -223,7 +222,11 @@ app.get("/profile", requireAuth, async (req, res) => {
 /* User Orders */
 app.post("/orders", requireAuth, async (req, res) => {
   try {
-    const { service, pickupAddress, phone, notes, clothTypes, pickupDate, pickupTime, delivery, lat, lng } = req.body;
+    const {
+      service, pickupAddress, phone, notes, clothTypes,
+      pickupDate, pickupTime, delivery, lat, lng
+    } = req.body;
+
     if (!service) return res.status(400).json({ error: "Service is required" });
 
     const orderNumber = await getNextSequence("orderNumber");
@@ -238,13 +241,12 @@ app.post("/orders", requireAuth, async (req, res) => {
       pickupDate,
       pickupTime,
       delivery: delivery || "regular",
-      lat,
-      lng,
+      lat, lng,
       status: "Pending",
     });
 
-    io.of("/admin").emit("admin:newOrder", created);
-    io.of("/admin").emit("admin:orderUpdated", created);
+    io.emit("admin:newOrder", created);
+    io.emit("admin:orderUpdated", created);
 
     res.status(201).json(created);
   } catch (err) {
@@ -256,7 +258,7 @@ app.post("/orders", requireAuth, async (req, res) => {
 app.get("/orders", requireAuth, async (req, res) => {
   try {
     const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
-  res.json(orders);
+    res.json(orders);
   } catch (err) {
     console.error("GET /orders error:", err);
     res.status(500).json({ error: "Failed to fetch orders" });
@@ -279,10 +281,15 @@ app.patch("/admin/orders/:id/status", requireAuth, requireAdmin, async (req, res
     const normalized = normalizeStatus(req.body?.status);
     if (!normalized) return res.status(400).json({ error: `Status must be one of: ${CANONICAL_STATUSES.join(", ")}` });
 
-    const updated = await Order.findByIdAndUpdate(req.params.id, { status: normalized }, { new: true }).populate("userId", "name email phone");
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status: normalized },
+      { new: true }
+    ).populate("userId", "name email phone");
+
     if (!updated) return res.status(404).json({ error: "Order not found" });
 
-    io.of("/admin").emit("admin:orderUpdated", updated);
+    io.emit("admin:orderUpdated", updated);
     res.json(updated);
   } catch (err) {
     console.error("PATCH /admin/orders/:id/status error:", err);
@@ -303,19 +310,6 @@ app.delete("/admin/orders/:id", requireAuth, requireAdmin, async (req, res) => {
 
 app.get("/", (_req, res) => res.send("🚀 API is running..."));
 
-/* -------- TEMP DEBUG ROUTES (remove after fixing) -------- */
-app.get("/whoami", requireAuth, (req, res) => res.json({ ok: true, userFromToken: req.user }));
-app.get("/__debug/orders-count", async (_req, res) => {
-  try {
-    const total = await Order.countDocuments();
-    const cxn = mongoose.connection;
-    res.json({ db: cxn.name, total });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-/* -------------------------------------------------------- */
-
 /* ----------------- Start ----------------- */
 async function startServer() {
   const MONGO_URI = process.env.MONGO_URI || "";
@@ -326,7 +320,7 @@ async function startServer() {
       mongoose.connection.on("connected", () => {
         const cxn = mongoose.connection;
         console.log("✅ Mongo connected", { host: cxn.host, name: cxn.name });
-        console.log("CORS allowed origins:", allowedOrigins);
+        console.log("CORS allowlist:", allowlist);
       });
     } catch (err) {
       console.error("❌ MongoDB connection error:", err.message || err);

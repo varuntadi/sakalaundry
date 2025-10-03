@@ -17,55 +17,98 @@ import requireAdmin from "./middleware/requireAdmin.js";
 dotenv.config();
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.PORT || 5000;
 
-/* ----------------- CORS (Netlify + localhost) ----------------- */
+/* ---------------------------- Core middleware ---------------------------- */
+app.set("trust proxy", 1);
+app.use(express.json());
+
+/* ----------------- CORS (Netlify + custom domain + localhost) ------------ */
 /**
- * In Render env set:
- *   FRONTEND_URL=https://sakalaundry.netlify.app
- * This block also allows Netlify preview URLs: https://<branch>--sakalaundry.netlify.app
+ * On Render → Environment, set:
+ *   FRONTEND_URL = https://sakalaundry.netlify.app
+ *   PUBLIC_SITE_URL = https://sakalaundry.in
  */
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-const allowlist = [
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://sakalaundry.netlify.app";
+const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || "";
+
+// Expand to with-www / without-www
+const variants = (u) => {
+  if (!u) return [];
+  try {
+    const url = new URL(u);
+    const proto = url.protocol;
+    const host = url.host;
+    const noWww = host.replace(/^www\./, "");
+    const withWww = host.startsWith("www.") ? host : `www.${host}`;
+    return [`${proto}//${noWww}`, `${proto}//${withWww}`];
+  } catch {
+    return [u];
+  }
+};
+
+// Netlify preview deploys like https://branch--sakalaundry.netlify.app
+const NETLIFY_PREVIEWS = /^https:\/\/[a-z0-9-]+--sakalaundry\.netlify\.app$/i;
+
+// Final allowlist
+const allowlist = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:3000",
-  FRONTEND_URL,
-];
-const previewRegex = /^https:\/\/[a-z0-9-]+--sakalaundry\.netlify\.app$/i;
+  ...variants(FRONTEND_URL),
+  ...variants(PUBLIC_SITE_URL),
+]);
 
 const isAllowedOrigin = (origin) => {
-  if (!origin) return true; // curl/server-to-server
-  if (allowlist.includes(origin)) return true;
-  if (previewRegex.test(origin)) return true;
+  if (!origin) return true; // curl/health checks
+  if (allowlist.has(origin)) return true;
+  if (NETLIFY_PREVIEWS.test(origin)) return true;
   return false;
 };
 
+// Always send Vary: Origin to help caches
+app.use((req, res, next) => {
+  res.setHeader("Vary", "Origin");
+  next();
+});
+
+// Primary CORS middleware
 app.use(
   cors({
     origin: (origin, cb) =>
-      isAllowedOrigin(origin)
-        ? cb(null, true)
-        : cb(new Error(`CORS not allowed: ${origin}`), false),
+      isAllowedOrigin(origin) ? cb(null, true) : cb(new Error(`CORS not allowed: ${origin}`), false),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    credentials: false, // using Bearer tokens, not cookies
+    credentials: false, // using Bearer tokens (not cookies)
   })
 );
 
-/* simple logger */
+// Explicit preflight handler so OPTIONS always returns the headers
+app.options("*", (req, res) => {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    // res.setHeader("Access-Control-Allow-Credentials", "true"); // enable if you ever switch to cookies
+    return res.sendStatus(204);
+  }
+  return res.sendStatus(403);
+});
+
+// Debug logs (will show in Render)
+console.log("CORS allowlist:", Array.from(allowlist));
+console.log("CORS previews regex:", NETLIFY_PREVIEWS);
+
+/* ------------------------------- Logger ---------------------------------- */
 app.use((req, _res, next) => {
   console.log("➡", req.method, req.url);
   next();
 });
 
-/* ----------------- HTTP + Socket.IO ----------------- */
+/* ------------------------ HTTP + Socket.IO setup ------------------------- */
 const httpServer = http.createServer(app);
-
-// For Socket.IO, supply only string origins (regex not supported here)
-const socketAllow = allowlist.filter((o) => typeof o === "string");
+const socketAllow = Array.from(allowlist);
 const io = new SocketIOServer(httpServer, {
   cors: { origin: socketAllow, credentials: false },
   pingInterval: 25000,
@@ -73,9 +116,8 @@ const io = new SocketIOServer(httpServer, {
 });
 app.set("io", io);
 
-/* ----------------- Models ----------------- */
-import mongoosePkg from "mongoose";
-const { Schema, model, models } = mongoosePkg;
+/* -------------------------------- Models --------------------------------- */
+const { Schema, model, models } = mongoose;
 
 const userSchema = new Schema(
   {
@@ -119,7 +161,7 @@ const orderSchema = new Schema(
 );
 const Order = models.Order || model("Order", orderSchema);
 
-/* ----------------- Helpers ----------------- */
+/* -------------------------------- Helpers -------------------------------- */
 const JWT_SECRET = process.env.JWT_SECRET;
 const onlyDigits = (s = "") => (s || "").toString().replace(/\D/g, "");
 const CANONICAL_STATUSES = ["Pending", "In Progress", "Delivering", "Completed"];
@@ -130,7 +172,10 @@ const normalizeStatus = (input) => {
   if (s.includes("deliver")) return "Delivering";
   if (s === "in progress" || s === "progress") return "In Progress";
   if (s === "pending") return "Pending";
-  const title = s.split(/\s+/).map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
+  const title = s
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
   return CANONICAL_STATUSES.includes(title) ? title : null;
 };
 async function getNextSequence(name) {
@@ -142,25 +187,32 @@ async function getNextSequence(name) {
   return doc.seq;
 }
 
-/* ----------------- Routers ----------------- */
+/* -------------------------------- Routers -------------------------------- */
 app.use("/auth", forgotRouter);
 app.use("/api/tickets", ticketsRouter);
 
-/* ----------------- Basic routes ----------------- */
+/* ------------------------------- Basic API ------------------------------- */
 app.get("/api", (_req, res) => res.json({ ok: true, service: "saka-laundry-api" }));
 app.get("/health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
-/* ----------------- Auth ----------------- */
+/* --------------------------------- Auth ---------------------------------- */
 app.post("/signup", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
-    if (!name || !phone || !password) return res.status(400).json({ error: "Name, phone and password are required." });
+    if (!name || !phone || !password)
+      return res.status(400).json({ error: "Name, phone and password are required." });
 
     const normalizedPhone = onlyDigits(phone);
-    if (await User.findOne({ phone: normalizedPhone })) return res.status(400).json({ error: "Phone already in use." });
-    if (email && (await User.findOne({ email: email.toLowerCase() }))) return res.status(400).json({ error: "Email already in use." });
+    if (await User.findOne({ phone: normalizedPhone }))
+      return res.status(400).json({ error: "Phone already in use." });
+    if (email && (await User.findOne({ email: email.toLowerCase() })))
+      return res.status(400).json({ error: "Email already in use." });
 
-    const user = new User({ name, phone: normalizedPhone, email: email ? email.toLowerCase() : undefined });
+    const user = new User({
+      name,
+      phone: normalizedPhone,
+      email: email ? email.toLowerCase() : undefined,
+    });
     await user.setPassword(password);
     await user.save();
 
@@ -207,7 +259,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-/* ----------------- Protected ----------------- */
+/* ------------------------------ User routes ------------------------------ */
 app.get("/profile", requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-passwordHash -__v");
@@ -219,14 +271,9 @@ app.get("/profile", requireAuth, async (req, res) => {
   }
 });
 
-/* User Orders */
 app.post("/orders", requireAuth, async (req, res) => {
   try {
-    const {
-      service, pickupAddress, phone, notes, clothTypes,
-      pickupDate, pickupTime, delivery, lat, lng
-    } = req.body;
-
+    const { service, pickupAddress, phone, notes, clothTypes, pickupDate, pickupTime, delivery, lat, lng } = req.body;
     if (!service) return res.status(400).json({ error: "Service is required" });
 
     const orderNumber = await getNextSequence("orderNumber");
@@ -241,7 +288,8 @@ app.post("/orders", requireAuth, async (req, res) => {
       pickupDate,
       pickupTime,
       delivery: delivery || "regular",
-      lat, lng,
+      lat,
+      lng,
       status: "Pending",
     });
 
@@ -265,7 +313,7 @@ app.get("/orders", requireAuth, async (req, res) => {
   }
 });
 
-/* Admin */
+/* ------------------------------- Admin APIs ------------------------------ */
 app.get("/admin/orders", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const orders = await Order.find().populate("userId", "name email phone").sort({ createdAt: -1 });
@@ -310,7 +358,7 @@ app.delete("/admin/orders/:id", requireAuth, requireAdmin, async (req, res) => {
 
 app.get("/", (_req, res) => res.send("🚀 API is running..."));
 
-/* ----------------- Start ----------------- */
+/* --------------------------------- Start --------------------------------- */
 async function startServer() {
   const MONGO_URI = process.env.MONGO_URI || "";
   if (MONGO_URI) {
@@ -320,10 +368,10 @@ async function startServer() {
       mongoose.connection.on("connected", () => {
         const cxn = mongoose.connection;
         console.log("✅ Mongo connected", { host: cxn.host, name: cxn.name });
-        console.log("CORS allowlist:", allowlist);
+        console.log("CORS allowlist:", Array.from(allowlist));
       });
     } catch (err) {
-      console.error("❌ MongoDB connection error:", err.message || err);
+      console.error("❌ MongoDB connection error:", err?.message || err);
     }
   } else {
     console.warn("⚠️ No MONGO_URI provided — starting server without DB (dev only).");

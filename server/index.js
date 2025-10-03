@@ -83,14 +83,15 @@ app.use(
   })
 );
 
-// Explicit preflight handler so OPTIONS always returns the headers
-app.options("*", (req, res) => {
+// ✅ Express v5-safe global preflight handler (no "*" path)
+app.use((req, res, next) => {
+  if (req.method !== "OPTIONS") return next();
   const origin = req.headers.origin;
   if (isAllowedOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-    // res.setHeader("Access-Control-Allow-Credentials", "true"); // enable if you ever switch to cookies
+    // res.setHeader("Access-Control-Allow-Credentials", "true"); // enable if you switch to cookies
     return res.sendStatus(204);
   }
   return res.sendStatus(403);
@@ -306,7 +307,7 @@ app.post("/orders", requireAuth, async (req, res) => {
 app.get("/orders", requireAuth, async (req, res) => {
   try {
     const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
-    res.json(orders);
+  res.json(orders);
   } catch (err) {
     console.error("GET /orders error:", err);
     res.status(500).json({ error: "Failed to fetch orders" });

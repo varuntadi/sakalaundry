@@ -3666,3 +3666,51 @@ html, body {
 .clickable:active {
   transform: scale(0.95);
 }
+/* Button base */
+.hamburger-svg {
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 6px;
+}
+
+/* When menu is open, button becomes WHITE */
+.hamburger-svg.open {
+  background: #fff;            /* white button */
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+/* Lucide uses currentColor; make the X black */
+.black-close {
+  color: #111 !important;
+  stroke: #111 !important;
+}
+
+/* Smooth swap (optional) */
+.icon-toggle .icon-stack {
+  position: relative;
+  width: 30px; height: 30px;
+  display: inline-block;
+  transition: transform .25s ease;
+}
+.icon-toggle.open .icon-stack { transform: rotate(180deg); }
+
+.icon-toggle .icon {
+  position: absolute; inset: 0;
+  opacity: 0; transition: opacity .18s ease;
+}
+.icon-toggle .icon-menu { opacity: 1; }
+.icon-toggle.open .icon-menu { opacity: 0; }
+.icon-toggle.open .icon-close { opacity: 1; }
+
+/* If you previously had CSS that turned the icon blue, remove/override it.
+   For example, avoid .hamburger-svg.open svg { color: var(--primary); } */
+.hamburger-svg { background: transparent; border: none; border-radius: 12px; padding: 6px; }
+.hamburger-svg.open { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+.black-close { color: #111 !important; stroke: #111 !important; }
+.icon-toggle .icon-stack { position: relative; width: 30px; height: 30px; display: inline-block; transition: transform .25s ease; }
+.icon-toggle.open .icon-stack { transform: rotate(180deg); }
+.icon-toggle .icon { position: absolute; inset: 0; opacity: 0; transition: opacity .18s ease; }
+.icon-toggle .icon-menu { opacity: 1; }
+.icon-toggle.open .icon-menu { opacity: 0; }
+.icon-toggle.open .icon-close { opacity: 1; }

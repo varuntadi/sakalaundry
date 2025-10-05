@@ -1,3 +1,4 @@
+
 {
   "name": "SAKA Laundry",
   "short_name": "SAKA",
@@ -6,6 +7,10 @@
   "background_color": "#ffffff",
   "theme_color": "#00aaff",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
   ]
 }

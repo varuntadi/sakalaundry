@@ -1,1 +1,4 @@
 /*    /index.html   200
+http://*                      https://:splat                          301!
+www.sakalaundry.in/*          https://sakalaundry.in/:splat           301!
+/*                            /index.html                             200

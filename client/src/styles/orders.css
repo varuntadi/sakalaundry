@@ -556,3 +556,183 @@ button:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,0.08)
   .title { font-size: 22px; }
   .subtitle { font-size: 15px; padding: 0 18px; }
 }
+/* --- invoice --- */
+.invoice-box { border:1px solid #eaf3ee; background:#f7fbf9; border-radius:12px; padding:12px; margin-top:12px; }
+.invoice-box .title { font-weight:700; }
+.invoice-box .actions { display:flex; gap:8px; }
+.alert.slim { background:#fff7e6; border:1px solid #ffe0b2; color:#9a5b00; padding:6px 10px; border-radius:8px; font-size:12px; margin-top:8px; }
+
+.meta-grid { display:grid; grid-template-columns: 1fr auto; gap:10px; margin-top:8px; }
+.pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; border:1px solid #d1fae5; background:#ecfdf5; color:#065f46; }
+.pill.unpaid { border-color:#ffe4d6; background:#fff7f3; color:#7c2d12; }
+.pill.paid { border-color:#b9efcf; background:#e7f9ef; color:#0f7a45; }
+
+.inv-items { margin-top:10px; border:1px solid #edf2f7; border-radius:10px; overflow:hidden; }
+.inv-head, .inv-row { display:grid; grid-template-columns: 1fr 80px 120px 120px; gap:10px; padding:8px 10px; }
+.inv-head { background:#1e8849; color:#fff; font-weight:700; }
+.inv-row:nth-child(even) { background:#f9fafb; }
+
+.inv-totals { margin-top:10px; border-top:1px dashed #e5e7eb; padding-top:8px; display:grid; gap:6px; }
+.inv-totals > div { display:flex; justify-content:space-between; }
+.inv-totals .grand { font-weight:800; }
+
+.btn.linklike { background:transparent; color:#1e8849; padding:0 6px; border:none; text-decoration:underline; cursor:pointer; }
+.badge.picked { background:#e7f0ff; color:#1e40af; border:1px solid #c7dbff; }
+/* === MyOrders: compact items table =============================== */
+.order .items {
+  margin-top: 10px;
+  border: 1px solid #e6eef6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.order .items .item-head,
+.order .items .item-row {
+  display: grid;
+  grid-template-columns: 1fr 64px 100px 110px; /* Item | Qty | Rate | Amount */
+  align-items: center;
+  column-gap: 12px;
+  padding: 10px 12px;
+  line-height: 1.25;
+}
+
+.order .items .item-head {
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 1px solid #e6eef6;
+  text-transform: none;
+}
+
+.order .items .item-row {
+  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.order .items .item-row:last-child { border-bottom: 0; }
+
+/* right-align the ₹ columns */
+.order .items .item-head > div:nth-child(3),
+.order .items .item-head > div:nth-child(4),
+.order .items .item-row  > div:nth-child(3),
+.order .items .item-row  > div:nth-child(4) {
+  text-align: right;
+}
+
+/* === Totals ======================================================= */
+.t-totals.slim,
+.t-totals.compact {
+  border: 1px solid #e6eef6;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: grid;
+  row-gap: 8px;
+  background: #fff;
+}
+
+.t-totals.slim > div,
+.t-totals.compact > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 14px;
+}
+
+.t-totals .grand { font-weight: 800; }
+.t-totals .grand.only { font-size: 16px; }
+
+/* === Pay CTA ====================================================== */
+.pay-cta .btn.primary { width: 100%; }
+
+/* Pills / badges (for consistency) */
+.pill.paid    { background:#16a34a; color:#fff; padding:3px 8px; border-radius:999px; font-size:12px; }
+.pill.unpaid  { background:#f59e0b; color:#111827; padding:3px 8px; border-radius:999px; font-size:12px; }
+
+/* Optional: tighten order header spacing */
+.order .order-top .right .helper.small { margin-top: 2px; }
+/* ===== Mobile-compact items in InvoiceCard ===== */
+.items.mobile-compact {
+  margin-top: 10px;
+  border: 1px solid #e6eef6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+.items.mobile-compact .m-head,
+.items.mobile-compact .m-row {
+  display: grid;
+  grid-template-columns: 1fr auto; /* Item | Amount */
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+.items.mobile-compact .m-head {
+  background: #f8fafc;
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1px solid #e6eef6;
+}
+.items.mobile-compact .m-row { border-top: 1px solid #f1f5f9; }
+.items.mobile-compact .m-row:first-of-type { border-top: 0; }
+.items.mobile-compact .m-item .name { font-weight: 600; }
+.items.mobile-compact .m-item .sub { color: #64748b; font-size: 12px; margin-top: 2px; }
+.items.mobile-compact .m-amt { text-align: right; font-weight: 700; }
+
+/* ===== Totals block look (used in invoice + order card) ===== */
+.t-totals.sticky-look {
+  border: 1px solid #e6eef6;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: grid;
+  row-gap: 6px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(2,6,23,.04);
+}
+.t-totals.sticky-look > div { display: flex; justify-content: space-between; }
+.t-totals .grand { font-weight: 800; }
+
+/* ===== Pay grid with real icons ===== */
+.pay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pay-btn.upi {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e6eef6;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 600;
+  justify-content: center;
+}
+.pay-btn.upi:hover { background: #f8fafc; }
+.pay-btn .icon { display: inline-grid; place-items: center; width: 22px; height: 22px; }
+
+/* ===== Mobile tweaks for order items table ===== */
+@media (max-width: 640px) {
+  .order .items {
+    border: 1px solid #e6eef6;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .order .items .item-head,
+  .order .items .item-row {
+    display: grid;
+    grid-template-columns: 1fr auto; /* Item | Amount */
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .order .items .item-head { background: #f8fafc; font-weight: 700; border-bottom: 1px solid #e6eef6; }
+  .order .items .item-row { border-top: 1px solid #f1f5f9; }
+  .order .items .item-row .col-qty,
+  .order .items .item-row .col-rate { display: none; }
+  .order .items .item-row .col-item { font-weight: 600; }
+  .order .items .item-row .col-amt { text-align: right; font-weight: 700; }
+}
+
+/* Pills for invoice status */
+.pill.paid   { background:#16a34a; color:#fff; padding:3px 8px; border-radius:999px; font-size:12px; }
+.pill.unpaid { background:#f59e0b; color:#111827; padding:3px 8px; border-radius:999px; font-size:12px; }

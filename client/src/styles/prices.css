@@ -1,0 +1,384 @@
+/* ================================
+   SAKA Laundry — Prices Page
+   Clean White Theme + Motion
+   ================================ */
+
+.price-container {
+  display: flex;
+  flex-direction: row;
+  background: #ffffff;
+  min-height: 100vh;
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #1f2d3d;
+}
+
+/* ===== Sidebar (sticky on desktop) ===== */
+.price-sidebar {
+  width: 260px;
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+  padding: 20px 16px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.03);
+  position: sticky;
+  top: 84px; /* stays visible while right content scrolls */
+  height: calc(100vh - 84px);
+  overflow: auto;
+}
+
+.search-box {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+  margin-bottom: 20px;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+.search-box:focus {
+  border-color: #0072ff;
+  box-shadow: 0 0 0 3px rgba(0, 114, 255, 0.12);
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.category-list li {
+  font-weight: 500;
+  color: #374151;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.category-list li:hover {
+  background: #e9f3ff;
+  color: #0056b3;
+}
+.category-list li.active {
+  background: #0072ff;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ===== Content ===== */
+.price-content {
+  flex: 1;
+  padding: 28px;
+  background: #ffffff;
+}
+
+.category-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0c2442;
+  margin: 10px 0 18px;
+  border-bottom: 2px solid #0072ff;
+  display: inline-block;
+  padding-bottom: 6px;
+}
+
+/* ===== Grid & Cards ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+}
+
+.price-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  padding: 20px 24px;
+}
+
+.price-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0c2442;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #374151;
+  font-size: 15px;
+  padding: 6px 0;
+}
+.price-row .dots {
+  flex: 1;
+  border-bottom: 1px dotted #cbd5e1;
+  margin: 0 8px;
+  height: 1px;
+}
+
+/* ---------- minor util ---------- */
+.mb16 {
+  margin-bottom: 16px;
+}
+
+/* ---------- Accordion (mobile) ---------- */
+.accordion {
+  display: grid;
+  gap: 14px;
+}
+
+.acc-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.acc-header {
+  width: 100%;
+  background: #f8fafc;
+  border: 0;
+  outline: 0;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.acc-title {
+  font-weight: 600;
+  color: #0c2442;
+}
+.acc-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+}
+.acc-item .chev {
+  transition: transform 0.25s ease;
+}
+.acc-item.open .chev {
+  transform: rotate(180deg);
+}
+
+.acc-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s ease, padding 0.28s ease, opacity 0.22s ease,
+    transform 0.22s ease;
+  padding: 0 14px;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+.acc-item.open .acc-body {
+  padding: 14px;
+  max-height: 4000px;
+  opacity: 1;
+  transform: translateY(0);
+}
+.acc-item.open .acc-header {
+  background: #eef6ff;
+  box-shadow: inset 0 -1px 0 #e0ecff;
+}
+
+/* ---------- Mobile layout override ---------- */
+@media (max-width: 768px) {
+  .price-container {
+    flex-direction: column;
+    background: #fff;
+  }
+  .price-sidebar {
+    display: none;
+  }
+  .price-content {
+    padding: 16px;
+  }
+  .category-title {
+    border: 0;
+    padding: 0;
+    margin: 6px 0 10px;
+  }
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+/* =======================
+   ✨ Motion / Animations
+   ======================= */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* card reveal (stagger) */
+.price-card.reveal {
+  opacity: 0;
+  transform: translateY(14px) scale(0.98);
+  will-change: opacity, transform;
+}
+.price-card.reveal.in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: card-pop 420ms cubic-bezier(0.17, 0.84, 0.44, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+@keyframes card-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  60% {
+    transform: translateY(0) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* sheen line */
+.price-row .dots {
+  position: relative;
+  overflow: hidden;
+}
+.price-card.reveal.in .dots::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 114, 255, 0.08) 40%,
+    transparent 80%
+  );
+  animation: sheen 900ms ease 120ms both;
+  pointer-events: none;
+}
+@keyframes sheen {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.35;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* desktop hover micro-interaction */
+@media (hover: hover) and (pointer: fine) {
+  .price-card {
+    transition: transform 0.22s ease, box-shadow 0.22s ease,
+      border-color 0.22s ease;
+  }
+  .price-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.09);
+    border-color: #dbe3ee;
+  }
+}
+
+/* sidebar press feedback */
+.category-list li {
+  transition: transform 0.12s ease, background 0.2s ease, color 0.2s ease;
+}
+.category-list li:active {
+  transform: scale(0.98);
+}
+
+/* ===== Simple centered hero ===== */
+.hero-simple {
+  text-align: center;
+  padding: 18px 12px 8px;
+  margin: 0 0 8px;
+}
+
+.hero-kicker {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1d4ed8; /* blue */
+  margin: 0 0 6px;
+}
+.hero-kicker strong {
+  font-weight: 600;
+}
+
+.hero-welcome {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0c2442;
+  margin: 4px 0 6px;
+}
+
+.hero-brand {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0b5bc1;
+  margin: 0 0 12px;
+}
+
+.hero-sub {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0ea5b7; /* teal-ish accent like your ref */
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.hero-underline {
+  display: inline-block;
+  width: 90px;
+  height: 3px;
+  border-radius: 3px;
+  background: #0ea5b7;
+  margin: 2px auto 0;
+}
+
+@media (min-width: 769px) {
+  .hero-simple {
+    padding: 20px 12px 0;
+    margin-bottom: 4px;
+  }
+  .hero-welcome {
+    font-size: 26px;
+  }
+  .hero-brand {
+    font-size: 30px;
+  }
+}
+/* --- Fix: remove unwanted blue marking/highlight on mobile --- */
+@media (max-width: 768px) {
+  /* Don’t allow text selection inside price UI */
+  .accordion, .acc-item, .acc-header, .acc-body,
+  .card-grid, .price-card, .price-row, .price-row .amount, .price-row .dots,
+  .category-title, .hero-section {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Remove the selection color itself (Safari/Chrome/Firefox) */
+  *::selection { background: transparent; color: inherit; }
+  *::-moz-selection { background: transparent; }
+
+  /* No focus outlines on tappable rows/buttons */
+  .acc-header:focus,
+  .price-card:focus { outline: none; }
+}
+
+/* Already helps but we keep it here for completeness */
+* { -webkit-tap-highlight-color: transparent; }

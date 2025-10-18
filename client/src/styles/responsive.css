@@ -347,3 +347,147 @@ iframe { max-width: 100% !important; width: 100% !important; height: auto !impor
 .whatsapp-btn {
   background: #25d366; /* WhatsApp Green */
 }
+/* =====================================
+   Saka Laundry – Cement Theme v1
+   Paste into any CSS file or <style> tag
+   =====================================*/
+
+:root {
+  --cement: #E5E5E5;
+  --cement-dark: #D9D9D9;
+  --surface: #FFFFFF;
+  --text: #1A1A1A;
+  --muted: #555;
+  --border: #D1D1D1;
+  --accent: #2563EB;  /* Fresh Blue */
+  --mint: #10B981;    /* Clean Mint */
+  --radius: 14px;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  --shadow-strong: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+/* General Reset */
+* { box-sizing: border-box; }
+body {
+  background: var(--cement);
+  color: var(--text);
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+/* Container */
+.container {
+  width: min(1100px, 92vw);
+  margin-inline: auto;
+  padding: 40px 0;
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-strong);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+.btn:hover {
+  background: var(--cement-dark);
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn--primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn--mint {
+  background: var(--mint);
+  color: #fff;
+  border-color: var(--mint);
+}
+
+/* Hero */
+.hero {
+  background: linear-gradient(180deg, var(--cement), var(--surface));
+  padding: 60px 0;
+  text-align: center;
+}
+.hero h1 {
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 800;
+  color: var(--text);
+}
+.hero p {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  gap: 20px;
+}
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) {
+  .grid-3 { grid-template-columns: 1fr; }
+}
+
+/* Input */
+input, textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+}
+
+/* Footer */
+.footer {
+  background: var(--cement-dark);
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 0;
+  font-size: 14px;
+}
+
+/* Headings */
+h1, h2, h3 {
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+/* Utility */
+.center { display: grid; place-items: center; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }

@@ -21,18 +21,12 @@ const PORT = process.env.PORT || 5000;
 
 /* ---------------------------- Core middleware ---------------------------- */
 app.set("trust proxy", 1);
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 /* ----------------- CORS (Netlify + custom domain + localhost) ------------ */
-/**
- * On Render → Environment, set:
- *   FRONTEND_URL = https://sakalaundry.netlify.app
- *   PUBLIC_SITE_URL = https://sakalaundry.in
- */
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://sakalaundry.netlify.app";
 const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || "";
 
-// Expand to with-www / without-www
 const variants = (u) => {
   if (!u) return [];
   try {
@@ -46,11 +40,8 @@ const variants = (u) => {
     return [u];
   }
 };
-
-// Netlify preview deploys like https://branch--sakalaundry.netlify.app
 const NETLIFY_PREVIEWS = /^https:\/\/[a-z0-9-]+--sakalaundry\.netlify\.app$/i;
 
-// Final allowlist
 const allowlist = new Set([
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -60,52 +51,39 @@ const allowlist = new Set([
 ]);
 
 const isAllowedOrigin = (origin) => {
-  if (!origin) return true; // curl/health checks
+  if (!origin) return true;
   if (allowlist.has(origin)) return true;
   if (NETLIFY_PREVIEWS.test(origin)) return true;
   return false;
 };
 
-// Always send Vary: Origin to help caches
-app.use((req, res, next) => {
-  res.setHeader("Vary", "Origin");
-  next();
-});
-
-// Primary CORS middleware
+app.use((req, res, next) => { res.setHeader("Vary", "Origin"); next(); });
 app.use(
   cors({
     origin: (origin, cb) =>
       isAllowedOrigin(origin) ? cb(null, true) : cb(new Error(`CORS not allowed: ${origin}`), false),
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    credentials: false, // using Bearer tokens (not cookies)
+    credentials: false,
   })
 );
-
-// ✅ Express v5-safe global preflight handler (no "*" path)
 app.use((req, res, next) => {
   if (req.method !== "OPTIONS") return next();
   const origin = req.headers.origin;
   if (isAllowedOrigin(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
-    // res.setHeader("Access-Control-Allow-Credentials", "true"); // enable if you switch to cookies
     return res.sendStatus(204);
   }
   return res.sendStatus(403);
 });
 
-// Debug logs (will show in Render)
 console.log("CORS allowlist:", Array.from(allowlist));
 console.log("CORS previews regex:", NETLIFY_PREVIEWS);
 
-/* ------------------------------- Logger ---------------------------------- */
-app.use((req, _res, next) => {
-  console.log("➡", req.method, req.url);
-  next();
-});
+/* -------------------------------- Logger -------------------------------- */
+app.use((req, _res, next) => { console.log("➡", req.method, req.url); next(); });
 
 /* ------------------------ HTTP + Socket.IO setup ------------------------- */
 const httpServer = http.createServer(app);
@@ -142,28 +120,83 @@ const User = models.User || model("User", userSchema);
 const counterSchema = new Schema({ _id: String, seq: { type: Number, default: 0 } });
 const Counter = models.Counter || model("Counter", counterSchema);
 
+const itemSchema = new Schema(
+  {
+    service: { type: String, required: true },
+    qty: { type: Number, required: true, min: 0 },
+    rate: { type: Number, required: true, min: 0 },
+    amount: { type: Number, required: true, min: 0 },
+  },
+  { _id: false }
+);
+
 const orderSchema = new Schema(
   {
     orderNumber: { type: Number, index: true, unique: true, sparse: true },
+
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    service: { type: String, enum: ["Wash and Fold", "Wash and Iron", "Iron", "Dry Clean", "Others"], required: true },
-    status: { type: String, enum: ["Pending", "In Progress", "Delivering", "Completed"], default: "Pending" },
+    service: {
+      type: String,
+      enum: ["Wash and Fold", "Wash and Iron", "Iron", "Dry Clean", "Others"],
+      required: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["Pending", "In Progress", "Delivering", "Completed"],
+      default: "Pending",
+    },
+
     clothTypes: { type: [String], default: [] },
-    pickupAddress: String,
+    pickupAddress: { type: String, default: "" },
     lat: Number,
     lng: Number,
-    phone: String,
-    notes: String,
-    pickupDate: String,
-    pickupTime: String,
+    phone: { type: String, default: "" },
+    notes: { type: String, default: "" },
+
+    pickupDate: { type: String, default: "" },
+    pickupTime: { type: String, default: "" },
+
     delivery: { type: String, enum: ["regular", "express"], default: "regular" },
+    deliveryDate: { type: String, default: "" },
+    deliveryTime: { type: String, default: "" },
+
+    // pricing/invoice
+    items: { type: [itemSchema], default: [] },
+    subtotal: { type: Number, default: 0 },
+    discount: { type: Number, default: 0 }, // flat ₹
+    tax: { type: Number, default: 0 },      // flat ₹
+    total: { type: Number, default: 0 },
+    invoiceNumber: { type: Number, index: true },
+
+    pickedUpAt: { type: Date },
+    pickedUpBy: { type: Schema.Types.ObjectId, ref: "User" },
+
+    // payment
+    paymentStatus: { type: String, enum: ["unpaid", "paid", "refunded"], default: "unpaid" },
+    paymentRef: { type: String, default: "" },
+    invoiceUrl: { type: String, default: "" }, // link to generated PDF (if any)
   },
   { timestamps: true }
 );
+
+orderSchema.methods.recalc = function () {
+  const items = Array.isArray(this.items) ? this.items : [];
+  const subtotal = items.reduce(
+    (s, it) => s + (Number(it.amount ?? (Number(it.qty || 0) * Number(it.rate || 0))) || 0),
+    0
+  );
+  const discount = Math.max(0, Number(this.discount || 0));
+  const tax = Math.max(0, Number(this.tax || 0));
+  this.subtotal = subtotal;
+  this.total = Math.max(0, subtotal - discount + tax);
+  return this.total;
+};
+
 const Order = models.Order || model("Order", orderSchema);
 
 /* -------------------------------- Helpers -------------------------------- */
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "change_me_in_env";
 const onlyDigits = (s = "") => (s || "").toString().replace(/\D/g, "");
 const CANONICAL_STATUSES = ["Pending", "In Progress", "Delivering", "Completed"];
 const normalizeStatus = (input) => {
@@ -173,12 +206,10 @@ const normalizeStatus = (input) => {
   if (s.includes("deliver")) return "Delivering";
   if (s === "in progress" || s === "progress") return "In Progress";
   if (s === "pending") return "Pending";
-  const title = s
-    .split(/\s+/)
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(" ");
+  const title = s.split(/\s+/).map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(" ");
   return CANONICAL_STATUSES.includes(title) ? title : null;
 };
+
 async function getNextSequence(name) {
   const doc = await Counter.findByIdAndUpdate(
     { _id: name },
@@ -186,6 +217,19 @@ async function getNextSequence(name) {
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
   return doc.seq;
+}
+
+function computeTotals({ items = [], discount = 0, tax = 0 }) {
+  const norm = (items || []).map((it) => {
+    const qty = Math.max(0, Number(it.qty || 0));
+    const rate = Math.max(0, Number(it.rate || 0));
+    return { service: String(it.service || "Item"), qty, rate, amount: qty * rate };
+  });
+  const subtotal = norm.reduce((s, it) => s + it.amount, 0);
+  const d = Math.max(0, Number(discount || 0));
+  const t = Math.max(0, Number(tax || 0));
+  const total = Math.max(0, subtotal - d + t);
+  return { items: norm, subtotal, discount: d, tax: t, total };
 }
 
 /* -------------------------------- Routers -------------------------------- */
@@ -235,7 +279,6 @@ app.post("/login", async (req, res) => {
   try {
     const { identifier, email, phone, password } = req.body;
     if (!password) return res.status(400).json({ error: "Password is required." });
-
     const id = (identifier || email || phone || "").toString().trim();
     if (!id) return res.status(400).json({ error: "Provide email or phone" });
 
@@ -307,7 +350,7 @@ app.post("/orders", requireAuth, async (req, res) => {
 app.get("/orders", requireAuth, async (req, res) => {
   try {
     const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
-  res.json(orders);
+    res.json(orders);
   } catch (err) {
     console.error("GET /orders error:", err);
     res.status(500).json({ error: "Failed to fetch orders" });
@@ -318,7 +361,7 @@ app.get("/orders", requireAuth, async (req, res) => {
 app.get("/admin/orders", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const orders = await Order.find().populate("userId", "name email phone").sort({ createdAt: -1 });
-    res.json(orders);
+  res.json(orders);
   } catch (err) {
     console.error("GET /admin/orders error:", err);
     res.status(500).json({ error: "Failed to fetch orders" });
@@ -354,6 +397,176 @@ app.delete("/admin/orders/:id", requireAuth, requireAdmin, async (req, res) => {
   } catch (err) {
     console.error("DELETE /admin/orders/:id error:", err);
     res.status(500).json({ error: "Failed to delete order" });
+  }
+});
+
+// ----- NEW: pickup + initial pricing -----
+app.post("/admin/orders/:id/pickup", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    const { items, discount, tax } = req.body || {};
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: "At least one item is required" });
+    }
+
+    const totals = computeTotals({ items, discount, tax });
+
+    if (!order.invoiceNumber) {
+      order.invoiceNumber = await getNextSequence("invoiceNumber");
+    }
+    if (!order.pickedUpAt) order.pickedUpAt = new Date();
+    if (!order.pickedUpBy && req.user?.id) order.pickedUpBy = req.user.id;
+
+    order.items = totals.items;
+    order.subtotal = totals.subtotal;
+    order.discount = totals.discount;
+    order.tax = totals.tax;
+    order.total = totals.total;
+
+    if (order.status === "Pending") order.status = "In Progress";
+
+    order.recalc();
+    const saved = await order.save();
+    const populated = await saved.populate("userId", "name email phone");
+    io.emit("admin:orderUpdated", populated);
+    res.json(populated);
+  } catch (err) {
+    console.error("POST /admin/orders/:id/pickup error:", err);
+    res.status(500).json({ error: "Failed to save pricing" });
+  }
+});
+
+// ----- NEW: edit pricing later -----
+app.patch("/admin/orders/:id/pricing", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    const { items, discount, tax } = req.body || {};
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: "At least one item is required" });
+    }
+
+    const totals = computeTotals({ items, discount, tax });
+
+    order.items = totals.items;
+    order.subtotal = totals.subtotal;
+    order.discount = totals.discount;
+    order.tax = totals.tax;
+    order.total = totals.total;
+
+    order.recalc();
+    const saved = await order.save();
+    const populated = await saved.populate("userId", "name email phone");
+    io.emit("admin:orderUpdated", populated);
+    res.json(populated);
+  } catch (err) {
+    console.error("PATCH /admin/orders/:id/pricing error:", err);
+    res.status(500).json({ error: "Failed to save pricing" });
+  }
+});
+
+/* ----------------------------- PAYMENTS (UPDATED) ---------------------------- */
+/**
+ * Frontend polls this endpoint after launching the UPI intent.
+ * For localhost/demo you can pass ?forcePaid=1 or ?upiTxnId=XXXX to flip to paid.
+ * In production, mark paid in your UPI/PG webhook and this will just return the status.
+ */
+app.get("/payments/upi/status", async (req, res) => {
+  try {
+    const { orderId, invoiceNo, upiTxnId, forcePaid } = req.query;
+    if (!orderId || !invoiceNo) {
+      return res.status(400).json({ error: "Missing orderId or invoiceNo" });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    if (order.paymentStatus === "paid") {
+      return res.json({
+        paid: true,
+        ref: order.paymentRef || null,
+        invoiceUrl: order.invoiceUrl || null,
+        amount: order.total || 0,
+        method: "UPI",
+      });
+    }
+
+    const forced = String(forcePaid || "") === "1";
+    const hasTxn = typeof upiTxnId === "string" && upiTxnId.trim().length > 5;
+
+    if (forced || hasTxn) {
+      order.paymentStatus = "paid";
+      order.paymentRef = hasTxn ? String(upiTxnId) : `UPI-${Date.now()}`;
+      if (!order.invoiceUrl) order.invoiceUrl = `/invoices/${invoiceNo}.pdf`;
+      await order.save();
+
+      const populated = await Order.findById(order._id).populate("userId", "name email phone");
+      io.emit("admin:orderUpdated", populated);
+
+      return res.json({
+        paid: true,
+        ref: order.paymentRef,
+        invoiceUrl: order.invoiceUrl,
+        amount: order.total || 0,
+        method: "UPI",
+      });
+    }
+
+    return res.json({ paid: false });
+  } catch (err) {
+    console.error("GET /payments/upi/status error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+/* ----------------------------- PAYMENTS: DESKTOP CONFIRM (DEV) ----------------------------- */
+/**
+ * POST /payments/upi/confirm
+ * Body: { orderId, invoiceNo, upiTxnId? }
+ * Desktop helper: when the user clicks "I've completed the payment" on the QR dialog,
+ * we mark the order as paid (DEV ONLY). In production, rely on your PG/webhook.
+ */
+app.post("/payments/upi/confirm", requireAuth, async (req, res) => {
+  try {
+    const { orderId, invoiceNo, upiTxnId } = req.body || {};
+    if (!orderId || !invoiceNo) {
+      return res.status(400).json({ error: "Missing orderId or invoiceNo" });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    if (order.paymentStatus === "paid") {
+      return res.json({
+        paid: true,
+        ref: order.paymentRef || null,
+        invoiceUrl: order.invoiceUrl || null,
+        amount: order.total || 0,
+        method: "UPI",
+      });
+    }
+
+    order.paymentStatus = "paid";
+    order.paymentRef = upiTxnId ? String(upiTxnId) : `UPI-${Date.now()}`;
+    if (!order.invoiceUrl) order.invoiceUrl = `/invoices/${invoiceNo}.pdf`;
+    await order.save();
+
+    const populated = await Order.findById(order._id).populate("userId", "name email phone");
+    io.emit("admin:orderUpdated", populated);
+
+    return res.json({
+      paid: true,
+      ref: order.paymentRef,
+      invoiceUrl: order.invoiceUrl,
+      amount: order.total || 0,
+      method: "UPI",
+    });
+  } catch (err) {
+    console.error("POST /payments/upi/confirm error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

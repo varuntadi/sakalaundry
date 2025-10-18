@@ -9,7 +9,7 @@ export default function Home(){
               Doorstep pickup & delivery. Same-day options. Trusted by 2,000+ customers.
             </p>
             <div style={{display:"flex", gap:12, marginTop:18, flexWrap:"wrap"}}>
-              <a className="btn" href="tel:+91XXXXXXXXXX">Book Pickup</a>
+              <a className="btn" href="tel:+919121991113">Book Pickup</a>
               <a className="btn" href="/pricing" style={{background:"#0ea5e9"}}>See Pricing</a>
             </div>
           </div>

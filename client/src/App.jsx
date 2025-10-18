@@ -22,6 +22,8 @@ import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import Profile from "./pages/Profile.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
+import Prices from "./pages/Prices.jsx";
+
 const Orders = React.lazy(() => import("./pages/Orders.jsx"));
 const MyOrders = React.lazy(() => import("./pages/MyOrders.jsx"));
 import Admin from "./pages/Admin.jsx";
@@ -107,19 +109,21 @@ function Page({ children, full = false }) {
   return full ? <>{children}</> : <div className="container">{children}</div>;
 }
 
-/* ----------------- MAIN APP ----------------- */
-export default function App() {
+/* ----------------- Inner App ----------------- */
+function AppShell() {
   return (
-    <BrowserRouter>
+    <>
       <AppExpiryHandler />
       <ScrollToTop />
       <Nav />
+
       <main>
         <section className="section">
           <Routes>
             <Route path="/" element={<Page full><Landing /></Page>} />
             <Route path="/about" element={<Page full><About /></Page>} />
             <Route path="/contact" element={<Page full><ContactUs /></Page>} />
+            <Route path="/prices" element={<Page><Prices /></Page>} />
             <Route path="/login" element={<Page><Login /></Page>} />
             <Route path="/signup" element={<Page><Signup /></Page>} />
             <Route path="/forgot-password" element={<Page><ForgotPassword /></Page>} />
@@ -138,7 +142,7 @@ export default function App() {
               }
             />
 
-            {/* Orders */}
+            {/* Orders (table style) */}
             <Route
               path="/orders"
               element={
@@ -156,6 +160,7 @@ export default function App() {
               }
             />
 
+            {/* My Orders (cards) */}
             <Route
               path="/my-orders"
               element={
@@ -192,8 +197,18 @@ export default function App() {
           </Routes>
         </section>
       </main>
+
       <Footer />
       <ChatWidget />
+    </>
+  );
+}
+
+/* ----------------- MAIN APP ----------------- */
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
     </BrowserRouter>
   );
 }

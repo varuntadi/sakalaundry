@@ -3,13 +3,13 @@ import express from "express";
 import requireAuth from "../middleware/auth.js";
 import requireAdmin from "../middleware/requireAdmin.js";
 
-// Adjust these imports if your model files are in a different path
+// models
 import Order from "../models/order.js";
 import User from "../models/user.js";
 
 const router = express.Router();
 
-// Helper to get admin namespace (safe)
+/* ----------------- helpers ----------------- */
 function adminNsFromReq(req) {
   try {
     const io = req.app.get("io");
@@ -19,6 +19,23 @@ function adminNsFromReq(req) {
   }
 }
 
+// sanitize & compute money
+const toNum = (v) => (isNaN(parseFloat(v)) ? 0 : parseFloat(v));
+function sanitizeItems(items = []) {
+  if (!Array.isArray(items)) return [];
+  return items.map((it) => ({
+    service: String(it?.service || "Item"),
+    qty: toNum(it?.qty || 0),
+    rate: toNum(it?.rate || 0),
+  }));
+}
+function computeTotals(items = [], discount = 0, tax = 0) {
+  const subtotal = items.reduce((s, it) => s + toNum(it.qty) * toNum(it.rate), 0);
+  const total = Math.max(0, subtotal - toNum(discount) + toNum(tax));
+  return { subtotal, total };
+}
+
+/* ----------------- ORDERS: list ----------------- */
 /**
  * GET /admin/orders
  * Returns full order list for admin dashboard
@@ -36,6 +53,7 @@ router.get("/orders", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+/* ----------------- ORDERS: status ----------------- */
 /**
  * PATCH /admin/orders/:id/status
  * Update order status (normalizes allowed statuses)
@@ -62,15 +80,17 @@ router.patch("/orders/:id/status", requireAuth, requireAdmin, async (req, res) =
       return res.status(400).json({ error: `Status must be one of: ${CANONICAL_STATUSES.join(", ")}` });
     }
 
-    const updated = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true })
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    )
       .populate("userId", "name email phone")
       .lean();
+
     if (!updated) return res.status(404).json({ error: "Order not found" });
 
-    // Broadcast to admin namespace if available
-    const adminNs = adminNsFromReq(req);
-    try { adminNs?.emit("admin:orderUpdated", updated); } catch (e) {}
-
+    adminNsFromReq(req)?.emit("admin:orderUpdated", updated);
     res.json(updated);
   } catch (err) {
     console.error("PATCH /admin/orders/:id/status error:", err);
@@ -78,6 +98,88 @@ router.patch("/orders/:id/status", requireAuth, requireAdmin, async (req, res) =
   }
 });
 
+/* ----------------- ORDERS: pickup (NEW) ----------------- */
+/**
+ * POST /admin/orders/:id/pickup
+ * Mark order picked up AND save counted items & pricing in one shot.
+ * Body: { items:[{service,qty,rate}], discount, tax }
+ * Status becomes "In Progress" to match your canonical statuses.
+ */
+router.post("/orders/:id/pickup", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const items = sanitizeItems(req.body?.items || []);
+    const discount = toNum(req.body?.discount || 0);
+    const tax = toNum(req.body?.tax || 0);
+    const { subtotal, total } = computeTotals(items, discount, tax);
+
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          status: "In Progress",
+          pickupAt: new Date(),
+          items,
+          discount,
+          tax,
+          subtotal,
+          total,
+        },
+      },
+      { new: true }
+    )
+      .populate("userId", "name email phone")
+      .lean();
+
+    if (!updated) return res.status(404).json({ error: "Order not found" });
+
+    adminNsFromReq(req)?.emit("admin:orderUpdated", updated);
+    res.json(updated);
+  } catch (err) {
+    console.error("POST /admin/orders/:id/pickup error:", err);
+    res.status(500).json({ error: "Failed to mark pickup" });
+  }
+});
+
+/* ----------------- ORDERS: pricing (NEW) ----------------- */
+/**
+ * PATCH /admin/orders/:id/pricing
+ * Update items/discount/tax later (e.g., edits).
+ * Body: { items:[{service,qty,rate}], discount, tax }
+ */
+router.patch("/orders/:id/pricing", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const items = sanitizeItems(req.body?.items || []);
+    const discount = toNum(req.body?.discount || 0);
+    const tax = toNum(req.body?.tax || 0);
+    const { subtotal, total } = computeTotals(items, discount, tax);
+
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          items,
+          discount,
+          tax,
+          subtotal,
+          total,
+        },
+      },
+      { new: true }
+    )
+      .populate("userId", "name email phone")
+      .lean();
+
+    if (!updated) return res.status(404).json({ error: "Order not found" });
+
+    adminNsFromReq(req)?.emit("admin:orderUpdated", updated);
+    res.json(updated);
+  } catch (err) {
+    console.error("PATCH /admin/orders/:id/pricing error:", err);
+    res.status(500).json({ error: "Failed to save pricing" });
+  }
+});
+
+/* ----------------- ORDERS: delete ----------------- */
 /**
  * DELETE /admin/orders/:id
  * Delete an order (admin)
@@ -87,10 +189,7 @@ router.delete("/orders/:id", requireAuth, requireAdmin, async (req, res) => {
     const deleted = await Order.findByIdAndDelete(req.params.id).lean();
     if (!deleted) return res.status(404).json({ error: "Order not found" });
 
-    // optionally notify admins
-    const adminNs = adminNsFromReq(req);
-    try { adminNs?.emit("admin:orderDeleted", { _id: deleted._id }); } catch (e) {}
-
+    adminNsFromReq(req)?.emit("admin:orderDeleted", { _id: deleted._id });
     res.json({ message: "Order deleted" });
   } catch (err) {
     console.error("DELETE /admin/orders/:id error:", err);
@@ -98,6 +197,7 @@ router.delete("/orders/:id", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+/* ----------------- USERS ----------------- */
 /**
  * GET /admin/users
  * List users (no password field)
@@ -123,9 +223,11 @@ router.patch("/users/:id/role", requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Role must be "admin" or "user"' });
     }
 
-    const updated = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select("-passwordHash -__v").lean();
-    if (!updated) return res.status(404).json({ error: "User not found" });
+    const updated = await User.findByIdAndUpdate(req.params.id, { role }, { new: true })
+      .select("-passwordHash -__v")
+      .lean();
 
+    if (!updated) return res.status(404).json({ error: "User not found" });
     res.json(updated);
   } catch (err) {
     console.error("PATCH /admin/users/:id/role error:", err);
@@ -133,10 +235,7 @@ router.patch("/users/:id/role", requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-/**
- * GET /admin/stats
- * Simple KPIs for the admin dashboard
- */
+/* ----------------- STATS ----------------- */
 router.get("/stats", requireAuth, requireAdmin, async (req, res) => {
   try {
     const total = await Order.countDocuments();

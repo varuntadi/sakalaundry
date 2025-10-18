@@ -1,0 +1,141 @@
+.success-screen {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(1200px 1200px at 50% -20%, #e8fff3 0%, #ffffff 60%);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  padding: 16px;
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+.success-card {
+  width: min(520px, 94vw);
+  background: #ffffffcc;
+  border: 1px solid #e5e7eb;
+  backdrop-filter: blur(6px);
+  border-radius: 18px;
+  box-shadow: 0 30px 60px rgba(2, 6, 23, 0.15);
+  padding: 24px 22px 28px;
+  text-align: center;
+  animation: pop 320ms ease-out;
+}
+
+.success-card h2 {
+  margin: 8px 0 4px;
+  font-size: 26px;
+  color: #065f46;
+}
+
+.success-card .amt {
+  font-size: 22px;
+  font-weight: 800;
+  color: #065f46;
+  margin-bottom: 6px;
+}
+
+.success-card .meta {
+  color: #334155;
+  font-size: 14px;
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.success-card .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #16a34a;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.redirect-note {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+/* checkmark */
+.checkmark {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 10px;
+}
+.checkmark-circle {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #dcfce7;
+  border: 3px solid #16a34a;
+  animation: ring 600ms ease-out both;
+}
+.checkmark-stem {
+  position: absolute;
+  width: 6px;
+  height: 34px;
+  background: #16a34a;
+  top: 36px;
+  left: 38px;
+  transform: rotate(45deg) scaleY(0);
+  transform-origin: top;
+  border-radius: 3px;
+  animation: draw 350ms 380ms ease-out both;
+}
+.checkmark-kick {
+  position: absolute;
+  width: 6px;
+  height: 18px;
+  background: #16a34a;
+  top: 52px;
+  left: 28px;
+  transform: rotate(-45deg) scaleY(0);
+  transform-origin: top;
+  border-radius: 3px;
+  animation: draw 350ms 450ms ease-out both;
+}
+
+/* confetti */
+.confetti::before,
+.confetti::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(4px 4px at 20% 20%, #f59e0b 99%, transparent) -10px -10px,
+    radial-gradient(4px 4px at 80% 30%, #3b82f6 99%, transparent) 0 0,
+    radial-gradient(4px 4px at 30% 80%, #ef4444 99%, transparent) 10px 10px,
+    radial-gradient(4px 4px at 70% 70%, #10b981 99%, transparent) 20px -5px,
+    radial-gradient(4px 4px at 50% 40%, #a855f7 99%, transparent) -5px 15px;
+  background-size: 140px 140px;
+  animation: rain 1200ms linear infinite;
+  opacity: 0.5;
+}
+.confetti::after {
+  animation-delay: 400ms;
+  opacity: 0.35;
+}
+
+@keyframes ring {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+@keyframes draw {
+  to { transform: rotate(var(--rot, 45deg)) scaleY(1); }
+}
+@keyframes pop {
+  from { transform: translateY(18px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0) scale(1);      opacity: 1; }
+}
+@keyframes rain {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: 0 200px, 0 200px, 0 200px, 0 200px, 0 200px; }
+}

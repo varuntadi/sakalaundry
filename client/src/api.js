@@ -4,14 +4,12 @@ import { auth } from "./auth";
 
 /**
  * Base URL comes from Vite env:
- *  - Netlify (prod): set VITE_API_URL = https://<your-backend>.onrender.com
- *  - Local (dev): create client/.env.local with VITE_API_URL=http://localhost:5000
+ *  - Prod (Netlify): set VITE_API_URL=https://<your-backend>.onrender.com
+ *  - Dev: client/.env.local -> VITE_API_URL=http://localhost:5000
  */
 const BASE = import.meta.env.VITE_API_URL;
 
 if (!BASE) {
-  // Helpful log if env is missing in a preview/local build
-  // (does NOT break the app; axios will still throw on first call)
   console.warn(
     "VITE_API_URL is not set. Set it in Netlify (prod) or client/.env.local (dev)."
   );
@@ -20,7 +18,7 @@ if (!BASE) {
 const api = axios.create({
   baseURL: BASE,
   headers: { "Content-Type": "application/json" },
-  withCredentials: false, // we use Bearer tokens, not cookies
+  withCredentials: false, // using Bearer tokens, not cookies
 });
 
 /** Attach token on every request */
@@ -36,7 +34,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/** Friendly 401 handling (don’t loop on auth endpoints) */
+/** Friendly 401 handling (avoid loops on auth routes) */
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -48,9 +46,31 @@ api.interceptors.response.use(
       try { auth.logout(); } catch {}
       window.location.href = "/login?reason=session_expired";
     }
-
     return Promise.reject(err);
   }
 );
+
+/* ------------------------------------------------------------------ */
+/*                           PRICES ENDPOINTS                         */
+/* ------------------------------------------------------------------ */
+export const getCatalog = async () => {
+  const res = await api.get("/api/prices");
+  return res.data;
+};
+
+export const updatePriceItem = async (id, partial) => {
+  const res = await api.patch(`/api/prices/${encodeURIComponent(id)}`, partial);
+  return res.data;
+};
+
+export const bulkUpsertPrices = async (payloadObject) => {
+  const res = await api.post("/api/prices/bulk-upsert", payloadObject);
+  return res.data;
+};
+
+// also attach to default for convenience
+api.getCatalog = getCatalog;
+api.updatePriceItem = updatePriceItem;
+api.bulkUpsertPrices = bulkUpsertPrices;
 
 export default api;

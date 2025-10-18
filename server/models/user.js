@@ -1,27 +1,26 @@
-import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
+// server/models/user.js (replace existing)
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
-    phone: { type: String, required: true, unique: true, trim: true },
-    passwordHash: { type: String, required: true },
-    // ✅ include all roles you will ever use
-    role: { type: String, enum: ["user", "admin", "delivery", "deliveryPartner"], default: "user" },
-  },
-  { timestamps: true }
-);
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
+  phone: { type: String, required: true, unique: true, trim: true }, // digits-only expected
+  passwordHash: { type: String, required: true },
+  role: { type: String, enum: ["user", "admin"], default: "user" },
+  createdAt: { type: Date, default: Date.now },
+});
 
-// hash helpers
+// instance method to set password (hash)
 userSchema.methods.setPassword = async function (plain) {
   const salt = await bcrypt.genSalt(10);
   this.passwordHash = await bcrypt.hash(plain, salt);
 };
+
+// instance method to verify password
 userSchema.methods.verifyPassword = async function (plain) {
-  return this.passwordHash ? bcrypt.compare(plain, this.passwordHash) : false;
+  if (!this.passwordHash) return false;
+  return bcrypt.compare(plain, this.passwordHash);
 };
 
-// export once
-const User = mongoose.models.User || mongoose.model("User", userSchema);
-export default User;
+module.exports = mongoose.models?.User || mongoose.model("User", userSchema);

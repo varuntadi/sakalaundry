@@ -1,3 +1,4 @@
+// client/src/components/Nav.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { auth } from "../auth";
@@ -5,7 +6,7 @@ import api from "../api";
 import "../styles/theme.css";
 import {
   Home, Info, Phone, Package, Shield, LogOut, LogIn, UserPlus, ShoppingCart,
-  X, Menu
+  X, Menu, IndianRupee  // <-- NEW icon
 } from "lucide-react";
 
 export default function Nav() {
@@ -78,6 +79,7 @@ export default function Nav() {
     { name: "Home", to: "/", icon: <Home size={18} /> },
     { name: "About Us", to: "/about", icon: <Info size={18} /> },
     { name: "Contact", to: "/contact", icon: <Phone size={18} /> },
+    { name: "Prices", to: "/prices", icon: <IndianRupee size={18} /> }, // <-- NEW
     ...(isLoggedIn ? [{ name: "My Orders", to: "/my-orders", icon: <Package size={18} /> }] : []),
     ...(isAdmin ? [{ name: "Admin", to: "/admin", icon: <Shield size={18} /> }] : []),
   ];
@@ -158,7 +160,7 @@ export default function Nav() {
         </div>
       </nav>
 
-      {/* Backdrop + Panel only render when open -> disappear instantly on close */}
+      {/* Backdrop + Panel */}
       {isMenuOpen && (
         <div
           className="menu-backdrop open"
@@ -175,7 +177,6 @@ export default function Nav() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="mobile-menu-title"
-          // prevent clicks inside from bubbling to window/backdrop
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mobile-panel-inner">

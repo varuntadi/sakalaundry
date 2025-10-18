@@ -22,10 +22,10 @@ const slides = [
 
 // Testimonials
 const testimonials = [
-  { name: "Rahul Sharma", review: "Super fast service! My clothes were fresh and neatly packed. Highly recommend!", rating: "★★★★★" },
-  { name: "Ananya Gupta", review: "Affordable and very professional. I loved the doorstep pickup and delivery.", rating: "★★★★★" },
-  { name: "Vikram Rao", review: "Eco-friendly cleaning and on-time delivery. Great for busy schedules.", rating: "★★★★☆" },
-  { name: "Sneha Reddy", review: "Best laundry service I’ve used in the city. Totally hassle-free!", rating: "★★★★★" },
+  { name: "subhas varma", review: "Super fast service! My clothes were fresh and neatly packed. Highly recommend!", rating: "★★★★★" },
+  { name: "sravya", review: "Affordable and very professional. I loved the doorstep pickup and delivery.", rating: "★★★★★" },
+  { name: "akilha", review: "Eco-friendly cleaning and on-time delivery. Great for busy schedules.", rating: "★★★★☆" },
+  { name: "Sneha ", review: "Best laundry service I’ve used in the city. Totally hassle-free!", rating: "★★★★★" },
 ];
 
 // FAQ
@@ -206,7 +206,7 @@ export default function Landing() {
       <section ref={reviewRef} className="section animate-on-scroll" style={{ padding: "60px 20px", background: "#fafafa" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", textAlign: "center" }}>
           <h2>What Our Customers Say</h2>
-          <p style={{ marginBottom: "40px" }}>Trusted by thousands of happy customers.</p>
+          <p style={{ marginBottom: "40px" }}>Trusted by 100+ of happy customers.</p>
           <div className="reviews">
             {testimonials.map((t, i) => (
               <div key={i} className="review fade-up">
@@ -254,7 +254,7 @@ export default function Landing() {
       {/* Stats */}
       <section className="section" style={{ background: "#f5f5f5", padding: "40px 20px" }}>
         <div className="stats" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "20px", maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
-          <Stat k="10k+" v="Orders delivered" />
+          <Stat k="100+" v="Orders delivered" />
           <Stat k="4.8★" v="Average rating" />
           <Stat k="24h" v="Turnaround" />
           <Stat k="100%" v="Fabric-safe care" />

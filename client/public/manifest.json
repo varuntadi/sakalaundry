@@ -1,7 +1,7 @@
 {
-  "name": "SAKA Laundry",
+  "name": "SAKA Laundry Solutions",
   "short_name": "SAKA",
-  "start_url": "https://sakalaundry.in/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#00aaff",

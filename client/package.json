@@ -13,6 +13,10 @@
     "axios": "^1.11.0",
     "canvas-confetti": "^1.9.3",
     "chart.js": "^4.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.24",
+    "html2canvas": "^1.4.1",
     "lottie-react": "^2.4.1",
     "lottie-web": "^5.13.0",
     "lucide-react": "^0.542.0",
@@ -23,6 +27,8 @@
     "react-lottie-player": "^2.1.0",
     "react-router-dom": "^7.8.2",
     "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.14",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -34,6 +40,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "shadcn-ui": "^0.9.5",
     "vite": "^7.1.2"
   }
 }

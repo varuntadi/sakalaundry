@@ -31,6 +31,7 @@ ChartJS.register(
    CONSTANTS & HELPERS
    ========================================================================= */
 // stamp image should be in /public/sakastamp.jpg
+// company logo should be in /public/saka-logo.png
 
 const ORDER_STATUSES = ["Pending", "In Progress", "Delivering", "Completed"];
 const SERVICES = ["Wash and Fold", "Wash and Iron", "Iron", "Dry Clean", "Others"];
@@ -58,19 +59,19 @@ const deliveryBadgeStyle = (type) =>
     ? {
         background: "#ef4444",
         color: "#fff",
-        padding: "4px 10px",
+        padding: "6px 12px",
         borderRadius: 12,
         fontWeight: 700,
-        fontSize: 12,
+        fontSize: 13,
         textTransform: "capitalize",
       }
     : {
         background: "#10b981",
         color: "#fff",
-        padding: "4px 10px",
+        padding: "6px 12px",
         borderRadius: 12,
         fontWeight: 600,
-        fontSize: 12,
+        fontSize: 13,
         textTransform: "capitalize",
       };
 
@@ -88,6 +89,27 @@ const fmtDate = (iso) => {
 const pad = (s, n = 2) => String(s).padStart(n, "0");
 const onlyDigits = (s) => String(s || "").replace(/\D/g, "");
 const safeWin = () => (typeof window !== "undefined" ? window : undefined);
+
+// number sanitizer (tolerates commas, spaces, weird quotes)
+const toNum = (v) => {
+  const cleaned = String(v ?? "")
+    .replace(/[^\d.\-]/g, "") // keep digits . -
+    .trim();
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? n : 0;
+};
+
+// Generate a readable order number e.g. SL-20251019-1210-847
+const genOrderNumber = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  const rnd = Math.floor(Math.random() * 900 + 100); // 100-999
+  return `SL-${y}${m}${day}-${hh}${mm}-${rnd}`;
+};
 
 /* =========================================================================
    MAIN COMPONENT
@@ -115,7 +137,7 @@ export default function Admin() {
 
   /* Pricing modal + invoice */
   const [priceModalOpen, setPriceModalOpen] = useState(false);
-  const [priceMode, setPriceMode] = useState("pickup"); // 'pickup' | 'edit'
+  const [priceMode, setPriceMode] = useState("pickup"); // 'pickup' | 'edit' | 'manual'
   const [priceOrderId, setPriceOrderId] = useState(null);
   const [priceOrderTitle, setPriceOrderTitle] = useState("");
   const [items, setItems] = useState([{ service: "Wash and Fold", item: "Garment", qty: 1, rate: 0 }]);
@@ -139,21 +161,21 @@ export default function Admin() {
 
   /* ----------------- One-time CSS ----------------- */
   useEffect(() => {
-    if (document.getElementById("admin-invoice-styles-v2")) return;
+    if (document.getElementById("admin-invoice-styles-v3")) return;
     const css = `
-      .adm-modal { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; padding:12px; }
-      .adm-sheet { width:min(1180px,100%); max-height: 94vh; overflow:auto; padding:14px; border-radius:14px; background:#fff; }
-      .adm-grid { display:grid; grid-template-columns: 1.35fr 520px; gap:14px; }
+      .adm-modal { position: fixed; inset: 0; z-index: 1000; background: rgba(15,23,42,.45); display:flex; align-items:center; justify-content:center; padding:16px; }
+      .adm-sheet { width:min(1200px,100%); max-height: 94vh; overflow:auto; padding:18px; border-radius:16px; background:#fff; }
+      .adm-grid { display:grid; grid-template-columns: 1.2fr 540px; gap:18px; }
       .invoice-panel { position:relative; }
-      .invoice-box { width:520px; max-width:520px; }
+      .invoice-box { width:540px; max-width:540px; }
 
-      .big-input { height:44px; padding:10px 14px; font-size:16px; border:2px solid #e3e8ef; border-radius:12px; outline:none; width:100%; }
+      .big-input { height:48px; padding:12px 14px; font-size:16px; border:2px solid #e3e8ef; border-radius:12px; outline:none; width:100%; background:#fff; }
       .big-input:focus { border-color:#2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,.12); }
       .big-number { text-align:left; }
-      .editor-th { background:#f1f5f9; font-weight:700; }
-      .editor-td { padding:8px; }
-      .editor-actions .btn { height:44px; }
-      .add-btn { height:44px; padding:0 14px; border:2px solid #e3e8ef; border-radius:12px; background:#f8fafc; }
+      .editor-th { background:#eef2f7; font-weight:700; }
+      .editor-td { padding:10px; }
+      .editor-actions .btn { height:48px; }
+      .add-btn { height:48px; padding:0 16px; border:2px solid #e3e8ef; border-radius:12px; background:#f8fafc; font-weight:600; }
       .add-btn:hover { background:#eef2f7; }
       .amount-cell { text-align:right; font-weight:700; white-space:nowrap; min-width:120px; }
       .col-service { width: 34%; min-width: 260px; }
@@ -162,7 +184,9 @@ export default function Admin() {
       .col-rate    { width: 16%; min-width: 140px; }
       .col-amt     { width: 10%; min-width: 120px; }
 
-      @media (max-width: 1020px) {
+      .helper { font-size:12px; color:#6b7280; margin-bottom:6px; }
+
+      @media (max-width: 1080px) {
         .adm-grid { grid-template-columns: 1fr; }
         .adm-sheet { width:100%; height:100%; max-height:none; border-radius:0; }
         .invoice-box { width:100%; max-width:none; }
@@ -170,14 +194,14 @@ export default function Admin() {
       }
     `;
     const el = document.createElement("style");
-    el.id = "admin-invoice-styles-v2";
+    el.id = "admin-invoice-styles-v3";
     el.textContent = css;
     document.head.appendChild(el);
   }, []);
 
   /* ----------------- Responsive flag ----------------- */
   useEffect(() => {
-    const onResize = () => setIsNarrow(window.innerWidth < 1020);
+    const onResize = () => setIsNarrow(window.innerWidth < 1080);
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -190,7 +214,6 @@ export default function Admin() {
       const res = await api.get("/admin/orders");
       const loaded = res.data ?? res;
       setOrders(loaded || []);
-      // refresh activeOrder if open
       if (priceOrderId) {
         const fresh = (loaded || []).find((o) => o._id === priceOrderId);
         if (fresh) setActiveOrder(fresh);
@@ -595,6 +618,45 @@ export default function Admin() {
     }, 50);
   };
 
+  // NEW: open manual invoice (WhatsApp/Call)
+  const openManualInvoice = () => {
+    const now = new Date();
+    const manual = {
+      _id: null,
+      orderNumber: genOrderNumber(),
+      createdAt: now.toISOString(),
+      status: "Pending",
+      service: "Wash and Iron",
+      delivery: "regular",
+      pickupDate: "",
+      pickupTime: "",
+      phone: "",
+      pickupAddress: "",
+      userId: { name: "" },
+      items: [],
+      subtotal: 0,
+      discount: 0,
+      tax: 0,
+      total: 0,
+      __manual: true,
+    };
+    setActiveOrder(manual);
+    setPriceOrderId(null);
+    setPriceOrderTitle(`#${manual.orderNumber} — Manual Invoice`);
+    setPriceMode("manual");
+    setItems([{ service: "Wash and Iron", item: "Shirt", qty: 1, rate: 0 }]);
+    setDiscount(0);
+    setDiscountMode("amount");
+    setTax(0);
+    setFormError("");
+    setPriceModalOpen(true);
+    setTimeout(() => {
+      try {
+        invoiceScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch {}
+    }, 50);
+  };
+
   const closePriceModal = () => {
     if (savingPrice) return;
     setPriceModalOpen(false);
@@ -606,42 +668,117 @@ export default function Admin() {
     setPriceOrderId(null);
   };
 
+  // Easier typing: sanitize numbers, allow blanks; bigger click areas
   const updateItem = (idx, field, value) => {
     setItems((prev) => {
       const next = [...prev];
       const current = { ...next[idx] };
       if (field === "service") current.service = value;
       if (field === "item") current.item = value;
-      if (field === "qty") current.qty = Math.max(0, Number(value || 0));
-      if (field === "rate") current.rate = Math.max(0, Number(value || 0));
+      if (field === "qty") current.qty = Math.max(0, toNum(value));
+      if (field === "rate") current.rate = Math.max(0, toNum(value));
       next[idx] = current;
       return next;
     });
   };
 
-  const addItemRow = () => setItems((prev) => [...prev, { service: "Wash and Iron", item: "Shirt", qty: 1, rate: 0 }]);
+  const addItemRow = () =>
+    setItems((prev) => [...prev, { service: "Wash and Iron", item: "Shirt", qty: 1, rate: 0 }]);
   const removeItemRow = (idx) => setItems((prev) => prev.filter((_, i) => i !== idx));
 
+  // Update manual order's customer/details fields
+  const updateManualField = (path, value) => {
+    setActiveOrder((prev) => {
+      const o = { ...(prev || {}) };
+      if (!o) return prev;
+      if (path === "orderNumber") o.orderNumber = value;
+      else if (path === "userId.name") o.userId = { ...(o.userId || {}), name: value };
+      else if (path === "phone") o.phone = value;
+      else if (path === "pickupAddress") o.pickupAddress = value;
+      else if (path === "delivery") o.delivery = value;
+      else if (path === "pickupDate") o.pickupDate = value;
+      else if (path === "pickupTime") o.pickupTime = value;
+      else if (path === "status") o.status = value;
+      return o;
+    });
+  };
+
+  // ✅ Robust validator & creator (fixes your error)
   const savePricing = async () => {
-    if (!priceOrderId) return;
-    if (!items.length || items.every((it) => !Number(it.qty) || !Number(it.rate))) {
-      setFormError("Add at least one item with quantity and rate.");
+    // Build a cleaned list
+    const cleanedItems = (items || [])
+      .map((it) => ({
+        service: (it.service || "").trim() || "Service",
+        item: (it.item || "").trim() || "Item",
+        qty: Math.max(0, toNum(it.qty)),
+        rate: Math.max(0, toNum(it.rate)),
+      }))
+      .filter((it) => it.qty > 0); // keep rows with qty
+
+    if (!cleanedItems.length) {
+      setFormError("Add at least one item with qty > 0 (rate can be 0).");
       return;
     }
+    setFormError("");
     setSavingPrice(true);
+
     try {
-      const body = {
-        items,
-        discount: Number(discountAmount || 0),
-        tax: Number(tax || 0),
-      };
-      if (priceMode === "pickup") {
+      const subtotal = cleanedItems.reduce((s, it) => s + it.qty * it.rate, 0);
+      const disc =
+        discountMode === "percent"
+          ? Math.max(0, Math.round((toNum(discount) / 100) * subtotal))
+          : Math.max(0, toNum(discount));
+      const taxVal = Math.max(0, toNum(tax));
+      const total = Math.max(0, subtotal - disc + taxVal);
+
+      const body = { items: cleanedItems, discount: disc, tax: taxVal };
+
+      if (priceMode === "pickup" && priceOrderId) {
         await api.post(`/admin/orders/${priceOrderId}/pickup`, body);
-      } else {
-        await api.patch(`/admin/orders/${priceOrderId}/pricing`, body);
+        await loadOrders();
+        closePriceModal();
+        return;
       }
-      await loadOrders();
-      closePriceModal();
+
+      if (priceMode === "edit" && priceOrderId) {
+        await api.patch(`/admin/orders/${priceOrderId}/pricing`, body);
+        await loadOrders();
+        closePriceModal();
+        return;
+      }
+
+      // MANUAL MODE (for phone/WhatsApp bookings)
+      const payload = {
+        orderNumber: activeOrder?.orderNumber || genOrderNumber(),
+        status: activeOrder?.status || "Pending",
+        delivery: activeOrder?.delivery || "regular",
+        pickupDate: activeOrder?.pickupDate || "",
+        pickupTime: activeOrder?.pickupTime || "",
+        pickupAddress: activeOrder?.pickupAddress || "",
+        phone: activeOrder?.phone || "",
+        userId: { name: activeOrder?.userId?.name || "Customer" },
+        items: cleanedItems,
+        subtotal,
+        discount: disc,
+        tax: taxVal,
+        total,
+        source: "manual",
+        createdAt: activeOrder?.createdAt || new Date().toISOString(),
+      };
+
+      let created;
+      try {
+        const res = await api.post("/admin/orders", payload);
+        created = res?.data ?? res;
+      } catch (err) {
+        console.warn("Manual order create failed; using local-only invoice.", err?.message || err);
+        created = { ...payload, _id: null, __manual: true };
+      }
+
+      setActiveOrder(created);
+      setPriceOrderId(created?._id ?? null);
+      setPriceOrderTitle(`#${created?.orderNumber} — ${created?.userId?.name || "Customer"}`);
+      if (created && created._id) await loadOrders();
     } catch (e) {
       console.error("savePricing failed", e);
       setFormError(e?.response?.data?.error || "Failed to save pricing");
@@ -754,9 +891,9 @@ export default function Admin() {
               placeholder="Search orders, phone, address, service..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #e6eef6" }}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 12, border: "1px solid #e6eef6" }}
             />
-            <select value={filterService} onChange={(e) => setFilterService(e.target.value)}>
+            <select value={filterService} onChange={(e) => setFilterService(e.target.value)} className="big-input" style={{ width: 220 }}>
               <option value="all">All Services</option>
               {SERVICES.map((s) => (
                 <option key={s} value={s}>
@@ -764,7 +901,7 @@ export default function Admin() {
                 </option>
               ))}
             </select>
-            <select value={filterDelivery} onChange={(e) => setFilterDelivery(e.target.value)}>
+            <select value={filterDelivery} onChange={(e) => setFilterDelivery(e.target.value)} className="big-input" style={{ width: 180 }}>
               <option value="all">All Delivery</option>
               <option value="regular">Regular</option>
               <option value="express">Express</option>
@@ -781,27 +918,32 @@ export default function Admin() {
             <button className="btn ghost" onClick={loadTickets}>
               🔄 Refresh Tickets
             </button>
+
+            {/* NEW: Manual / WhatsApp Invoice */}
+            <button className="btn" onClick={openManualInvoice} title="Create invoice for WhatsApp/Call bookings">
+              🧾 Manual Invoice
+            </button>
           </div>
 
           {/* KPIs */}
           <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-            <div style={{ padding: 12, borderRadius: 12, background: "#3b82f6", color: "#fff", minWidth: 160 }}>
+            <div style={{ padding: 14, borderRadius: 12, background: "#3b82f6", color: "#fff", minWidth: 160 }}>
               <div>Total Orders</div>
               <div style={{ fontWeight: 700, fontSize: 18 }}>{totals.total}</div>
             </div>
-            <div style={{ padding: 12, borderRadius: 12, background: "#facc15", minWidth: 160 }}>
+            <div style={{ padding: 14, borderRadius: 12, background: "#facc15", minWidth: 160 }}>
               <div>Pending</div>
               <div style={{ fontWeight: 700, fontSize: 18 }}>{totals.pending}</div>
             </div>
-            <div style={{ padding: 12, borderRadius: 12, background: "#06b6d4", minWidth: 160 }}>
+            <div style={{ padding: 14, borderRadius: 12, background: "#06b6d4", minWidth: 160 }}>
               <div>In Progress</div>
               <div style={{ fontWeight: 700, fontSize: 18 }}>{totals.progress}</div>
             </div>
-            <div style={{ padding: 12, borderRadius: 12, background: "#a855f7", minWidth: 160 }}>
+            <div style={{ padding: 14, borderRadius: 12, background: "#a855f7", minWidth: 160 }}>
               <div>Delivering</div>
               <div style={{ fontWeight: 700, fontSize: 18 }}>{totals.delivering}</div>
             </div>
-            <div style={{ padding: 12, borderRadius: 12, background: "#22c55e", minWidth: 160 }}>
+            <div style={{ padding: 14, borderRadius: 12, background: "#22c55e", minWidth: 160 }}>
               <div>Completed</div>
               <div style={{ fontWeight: 700, fontSize: 18 }}>{totals.done}</div>
             </div>
@@ -1010,15 +1152,15 @@ export default function Admin() {
               placeholder="Search tickets by user / mobile / issue..."
               value={ticketSearch}
               onChange={(e) => setTicketSearch(e.target.value)}
-              style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #e6eef6" }}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 12, border: "1px solid #e6eef6" }}
             />
-            <select value={ticketTab} onChange={(e) => setTicketTab(e.target.value)} style={{ minWidth: 140 }}>
+            <select value={ticketTab} onChange={(e) => setTicketTab(e.target.value)} className="big-input" style={{ minWidth: 160 }}>
               <option value="all">All Tickets</option>
               <option value="pending">Pending</option>
               <option value="contacted">Contacted</option>
               <option value="resolved">Resolved</option>
             </select>
-            <select value={ticketSortBy} onChange={(e) => setTicketSortBy(e.target.value)} style={{ minWidth: 140 }}>
+            <select value={ticketSortBy} onChange={(e) => setTicketSortBy(e.target.value)} className="big-input" style={{ minWidth: 160 }}>
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
             </select>
@@ -1120,7 +1262,7 @@ export default function Admin() {
                             placeholder="Type reply..."
                             value={replyText[t._id] || ""}
                             onChange={(e) => setReplyText((prev) => ({ ...prev, [t._id]: e.target.value }))}
-                            style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid #e6eef6" }}
+                            style={{ flex: 1, padding: "10px 12px", borderRadius: 12, border: "1px solid #e6eef6" }}
                             disabled={isBusy}
                           />
                           <button className="btn" onClick={() => sendReply(t._id)} disabled={isBusy}>
@@ -1177,7 +1319,9 @@ export default function Admin() {
             {/* Modal header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <div>
-                <h3 style={{ margin: 0 }}>{priceMode === "pickup" ? "Pickup & Price" : "Edit Pricing"}</h3>
+                <h3 style={{ margin: 0 }}>
+                  {priceMode === "pickup" ? "Pickup & Price" : priceMode === "manual" ? "Manual / WhatsApp Invoice" : "Edit Pricing"}
+                </h3>
                 <div style={{ color: "#64748b", marginTop: 2 }}>{priceOrderTitle}</div>
                 {activeOrder?.userId?.name && (
                   <div style={{ color: "#0f172a", marginTop: 2, fontWeight: 600 }}>
@@ -1221,6 +1365,98 @@ export default function Admin() {
               </div>
             )}
 
+            {/* NEW: Customer Details (Manual mode only) */}
+            {priceMode === "manual" && (
+              <div className="card" style={{ padding: 12, marginBottom: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <label>
+                    <div className="helper">Order Number</div>
+                    <input
+                      className="big-input"
+                      value={activeOrder?.orderNumber || ""}
+                      onChange={(e) => updateManualField("orderNumber", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <div className="helper">Status</div>
+                    <select
+                      className="big-input"
+                      value={activeOrder?.status || "Pending"}
+                      onChange={(e) => updateManualField("status", e.target.value)}
+                    >
+                      {ORDER_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <div className="helper">Delivery</div>
+                    <select
+                      className="big-input"
+                      value={activeOrder?.delivery || "regular"}
+                      onChange={(e) => updateManualField("delivery", e.target.value)}
+                    >
+                      <option value="regular">regular</option>
+                      <option value="express">express</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+                  <label>
+                    <div className="helper">Customer Name</div>
+                    <input
+                      className="big-input"
+                      placeholder="e.g., Rahul"
+                      value={activeOrder?.userId?.name || ""}
+                      onChange={(e) => updateManualField("userId.name", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <div className="helper">Phone</div>
+                    <input
+                      className="big-input"
+                      placeholder="10-digit mobile"
+                      value={activeOrder?.phone || ""}
+                      onChange={(e) => updateManualField("phone", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <div className="helper">Pickup Date</div>
+                    <input
+                      type="date"
+                      className="big-input"
+                      value={activeOrder?.pickupDate || ""}
+                      onChange={(e) => updateManualField("pickupDate", e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <label>
+                    <div className="helper">Pickup Time</div>
+                    <input
+                      type="time"
+                      className="big-input"
+                      value={activeOrder?.pickupTime || ""}
+                      onChange={(e) => updateManualField("pickupTime", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <div className="helper">Address</div>
+                    <input
+                      className="big-input"
+                      placeholder="House No, Street, Area..."
+                      value={activeOrder?.pickupAddress || ""}
+                      onChange={(e) => updateManualField("pickupAddress", e.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
             {/* Content split: Left editor + Right invoice */}
             <div className="adm-grid">
               {/* LEFT : Items table + summary inputs */}
@@ -1229,21 +1465,11 @@ export default function Admin() {
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr className="editor-th">
-                        <th className="col-service" style={{ textAlign: "left", padding: 10 }}>
-                          Service
-                        </th>
-                        <th className="col-item" style={{ textAlign: "left", padding: 10 }}>
-                          Item
-                        </th>
-                        <th className="col-qty" style={{ textAlign: "left", padding: 10 }}>
-                          Qty
-                        </th>
-                        <th className="col-rate" style={{ textAlign: "left", padding: 10 }}>
-                          Rate (₹)
-                        </th>
-                        <th className="col-amt" style={{ textAlign: "right", padding: 10 }}>
-                          Amount
-                        </th>
+                        <th className="col-service" style={{ textAlign: "left", padding: 12 }}>Service</th>
+                        <th className="col-item" style={{ textAlign: "left", padding: 12 }}>Item</th>
+                        <th className="col-qty" style={{ textAlign: "left", padding: 12 }}>Qty</th>
+                        <th className="col-rate" style={{ textAlign: "left", padding: 12 }}>Rate (₹)</th>
+                        <th className="col-amt" style={{ textAlign: "right", padding: 12 }}>Amount</th>
                         <th style={{ width: 60 }} />
                       </tr>
                     </thead>
@@ -1276,6 +1502,8 @@ export default function Admin() {
                             <td className="editor-td col-qty">
                               <input
                                 type="number"
+                                inputMode="decimal"
+                                step="any"
                                 min="0"
                                 className="big-input big-number"
                                 value={it.qty}
@@ -1285,6 +1513,8 @@ export default function Admin() {
                             <td className="editor-td col-rate">
                               <input
                                 type="number"
+                                inputMode="decimal"
+                                step="any"
                                 min="0"
                                 className="big-input big-number"
                                 value={it.rate}
@@ -1306,10 +1536,8 @@ export default function Admin() {
                   </table>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button className="add-btn" onClick={addItemRow}>
-                    + Add Item
-                  </button>
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button className="add-btn" onClick={addItemRow}>+ Add Item</button>
                 </div>
 
                 {/* Discount / Tax / Total */}
@@ -1317,18 +1545,20 @@ export default function Admin() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1.3fr 1fr 1fr",
-                    gap: 12,
-                    marginTop: 16,
+                    gap: 14,
+                    marginTop: 18,
                     alignItems: "end",
                   }}
                 >
-                  <label style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "end" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       <span className="helper">
                         Discount {discountMode === "percent" ? `(${Number(discount || 0)}%)` : "(₹)"}
                       </span>
                       <input
                         type="number"
+                        inputMode="decimal"
+                        step="any"
                         min="0"
                         className="big-input big-number"
                         value={discount}
@@ -1358,31 +1588,37 @@ export default function Admin() {
                     </div>
                   </label>
 
-                  <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     <span className="helper">Tax (₹)</span>
                     <input
                       type="number"
+                      inputMode="decimal"
+                      step="any"
                       min="0"
                       className="big-input big-number"
                       value={tax}
-                      onChange={(e) => setTax(Number(e.target.value || 0))}
+                      onChange={(e) => setTax(toNum(e.target.value))}
                     />
                   </label>
 
-                  <div style={{ textAlign: "right", fontWeight: 900, fontSize: 20 }}>
+                  <div style={{ textAlign: "right", fontWeight: 900, fontSize: 22 }}>
                     Total: {money(computeTotal)}
                   </div>
                 </div>
 
                 <div
                   className="editor-actions"
-                  style={{ marginTop: 14, display: "flex", justifyContent: "flex-end", gap: 10 }}
+                  style={{ marginTop: 16, display: "flex", justifyContent: "flex-end", gap: 10 }}
                 >
                   <button className="btn ghost" onClick={closePriceModal} disabled={savingPrice}>
                     Cancel
                   </button>
                   <button className="btn" onClick={savePricing} disabled={savingPrice}>
-                    {priceMode === "pickup" ? "Confirm Pickup & Save" : "Save Pricing"}
+                    {priceMode === "pickup"
+                      ? "Confirm Pickup & Save"
+                      : priceMode === "manual"
+                      ? "Save / Create Order"
+                      : "Save Pricing"}
                   </button>
                 </div>
               </div>
@@ -1399,7 +1635,7 @@ export default function Admin() {
                       background: "#fff",
                       border: "1px solid #e5e7eb",
                       boxShadow: "0 6px 28px rgba(2,6,23,0.08)",
-                      borderRadius: 8,
+                      borderRadius: 10,
                       overflow: "hidden",
                       fontFamily:
                         "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji'",
@@ -1408,29 +1644,19 @@ export default function Admin() {
                     {/* Letterhead */}
                     <div style={{ padding: "14px 16px", borderBottom: "2px solid #111827" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 8,
-                            background: "#e5f7eb",
-                            display: "grid",
-                            placeItems: "center",
-                            color: "#16a34a",
-                            fontWeight: 900,
-                            fontSize: 18,
-                          }}
-                          title="Saka Laundry"
-                        >
-                          S
-                        </div>
+                        {/* Your actual logo */}
+                        <img
+                          src="/saka-logo.png"
+                          alt="Saka Laundry"
+                          style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }}
+                        />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 900, fontSize: 18, letterSpacing: 0.2 }}>
                             SAKA LAUNDRY SOLUTIONS
                           </div>
                           <div style={{ fontSize: 12, color: "#374151", marginTop: 2 }}>
                             1st Floor, Indian Bank Building, Kokila Center, Bhaskar Nagar Rd,
-Bhanugudi Junction, Kakinada, Andhra Pradesh 533003
+                            Bhanugudi Junction, Kakinada, Andhra Pradesh 533003
                           </div>
                           <div style={{ fontSize: 12, color: "#374151", marginTop: 2 }}>
                             📞 9121991113 • ✉️ sakafreshwash@gmail.com
@@ -1488,15 +1714,9 @@ Bhanugudi Junction, Kakinada, Andhra Pradesh 533003
                         <div>
                           Delivery: <b style={{ textTransform: "capitalize" }}>{activeOrder?.delivery || "regular"}</b>
                         </div>
-                        <div>
-                          Pickup Date: <b>{activeOrder?.pickupDate || "-"}</b>
-                        </div>
-                        <div>
-                          Pickup Time: <b>{activeOrder?.pickupTime || "-"}</b>
-                        </div>
-                        <div>
-                          Status: <b>{activeOrder?.status || "-"}</b>
-                        </div>
+                        <div>Pickup Date: <b>{activeOrder?.pickupDate || "-"}</b></div>
+                        <div>Pickup Time: <b>{activeOrder?.pickupTime || "-"}</b></div>
+                        <div>Status: <b>{activeOrder?.status || "-"}</b></div>
                       </div>
                     </div>
 
@@ -1631,14 +1851,14 @@ Bhanugudi Junction, Kakinada, Andhra Pradesh 533003
                         position: "relative",
                       }}
                     >
-                      {/* STAMP: left side above the generated line */}
+                      {/* STAMP */}
                       <img
                         src="/sakastamp.jpg"
                         alt="Saka Laundry Stamp"
                         style={{
                           position: "absolute",
-                          left: 60,   // move to left
-                          bottom: 42, // sit above "Generated on"
+                          left: 60,
+                          bottom: 42,
                           width: 96,
                           height: 96,
                           objectFit: "contain",
@@ -1647,7 +1867,7 @@ Bhanugudi Junction, Kakinada, Andhra Pradesh 533003
                           userSelect: "none",
                           zIndex: 1,
                           mixBlendMode: "multiply",
-                          transform: "rotate(-6deg)", // small tilt for real-stamp feel; remove if not needed
+                          transform: "rotate(-6deg)",
                         }}
                       />
 
@@ -1708,7 +1928,7 @@ Bhanugudi Junction, Kakinada, Andhra Pradesh 533003
    Small utility: number to Indian rupees words (simple round rupees)
    ========================================================================= */
 function toRupeesInWords(num) {
-  if (!Number.isFinite(num)) return "-";
+  if (!Number.isFinite(num)) return "–";
   if (num === 0) return "Zero Rupees";
   const a = [
     "",

@@ -1,3 +1,4 @@
+// client/src/components/Footer.jsx
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -34,19 +35,13 @@ export default function Footer() {
           <h3 style={{ marginBottom: "12px" }}>Contact Us</h3>
           <p>
             <FaPhoneAlt style={{ marginRight: "8px", color: "#25D366" }} />
-            <a
-              href="tel:+919121991113"
-              style={{ color: "#111", textDecoration: "none" }}
-            >
+            <a href="tel:+919121991113" style={{ color: "#111", textDecoration: "none" }}>
               +91 9121991113
             </a>
           </p>
           <p>
             <FaEnvelope style={{ marginRight: "8px", color: "#e63946" }} />
-            <a
-              href="mailto:sakafreshwash@gmail.com"
-              style={{ color: "#111", textDecoration: "none" }}
-            >
+            <a href="mailto:sakafreshwash@gmail.com" style={{ color: "#111", textDecoration: "none" }}>
               sakafreshwash@gmail.com
             </a>
           </p>
@@ -65,28 +60,13 @@ export default function Footer() {
               flexWrap: "wrap",
             }}
           >
-            <a
-              href="https://facebook.com/sakalaundrysolutions"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "#3b5998", fontSize: "20px" }}
-            >
+            <a href="https://facebook.com/sakalaundrysolutions" target="_blank" rel="noreferrer" style={{ color: "#3b5998", fontSize: "20px" }}>
               <FaFacebook />
             </a>
-            <a
-              href="https://instagram.com/sakalaundrysolutions"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "#E4405F", fontSize: "20px" }}
-            >
+            <a href="https://instagram.com/sakalaundrysolutions" target="_blank" rel="noreferrer" style={{ color: "#E4405F", fontSize: "20px" }}>
               <FaInstagram />
             </a>
-            <a
-              href="https://twitter.com/sakalaundrysolutions"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "#1DA1F2", fontSize: "20px" }}
-            >
+            <a href="https://twitter.com/sakalaundrysolutions" target="_blank" rel="noreferrer" style={{ color: "#1DA1F2", fontSize: "20px" }}>
               <FaTwitter />
             </a>
           </div>
@@ -133,12 +113,17 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* ✅ Floating Buttons (hide on login, signup & orders) */}
+      {/* 🔹 Subtle legal bar with ONLY a tiny privacy link */}
+      <div className="legal-bar">
+        <span>© {new Date().getFullYear()} Saka Laundry</span>
+        <Link to="/privacy-policy" className="legal-link">Privacy Policy</Link>
+      </div>
+
+      {/* Floating Buttons (hide on login, signup & orders) */}
       {location.pathname !== "/login" &&
         location.pathname !== "/signup" &&
         location.pathname !== "/orders" && (
           <div className="floating-buttons">
-            {/* Call Button */}
             <div className="tooltip-container call-tooltip">
               <a href="tel:+919121991113" className="floating-btn call-btn">
                 <FaPhoneAlt />
@@ -146,7 +131,6 @@ export default function Footer() {
               <span className="tooltip-text">📞 Call Us</span>
             </div>
 
-            {/* WhatsApp Button */}
             <div className="tooltip-container whatsapp-tooltip">
               <a
                 href="https://wa.me/919121991113"
@@ -161,7 +145,7 @@ export default function Footer() {
           </div>
         )}
 
-      {/* ✅ Styles */}
+      {/* Styles */}
       <style>
         {`
           .footer-container {
@@ -189,31 +173,39 @@ export default function Footer() {
             gap: 8px;
             transition: 0.2s;
           }
-          .footer-links ul li a:hover {
-            color: #007bff;
-          }
+          .footer-links ul li a:hover { color: #007bff; }
 
-          /* ✅ Mobile: stack Contact Us & Quick Links */
+          /* Legal bar */
+          .legal-bar {
+            margin-top: 24px;
+            padding-top: 12px;
+            border-top: 1px solid #e6e6e6;
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            font-size: 12px;
+            color: #8a8a8a;
+          }
+          .legal-link {
+            color: #8a8a8a;
+            text-decoration: none;
+          }
+          .legal-link:hover { text-decoration: underline; color: #666; }
+
+          /* Mobile layout tweaks */
           @media (max-width: 768px) {
             .footer-container {
               flex-direction: column;
               text-align: center;
               gap: 40px;
             }
-            .footer-links {
-              margin-top: 20px;
-            }
-            .footer-links ul {
-              align-items: center;
-            }
-            /* ✅ On mobile: icons above text */
+            .footer-links { margin-top: 20px; }
+            .footer-links ul { align-items: center; }
             .footer-links ul li a {
               flex-direction: column;
               font-size: 15px;
             }
-            .footer-links ul li a span {
-              margin-top: 5px;
-            }
+            .footer-links ul li a span { margin-top: 5px; }
           }
 
           /* Floating buttons */
@@ -239,28 +231,14 @@ export default function Footer() {
             text-decoration: none;
             transition: transform 0.2s ease;
           }
-          .floating-btn:hover {
-            transform: scale(1.1);
-          }
-          .call-btn {
-            background-color: #007bff;
-          }
-          .call-btn:hover {
-            background-color: #0056b3;
-          }
-          .whatsapp-btn {
-            background-color: #25D366;
-            font-size: 28px;
-          }
-          .whatsapp-btn:hover {
-            background-color: #128c7e;
-          }
+          .floating-btn:hover { transform: scale(1.1); }
+          .call-btn { background-color: #007bff; }
+          .call-btn:hover { background-color: #0056b3; }
+          .whatsapp-btn { background-color: #25D366; font-size: 28px; }
+          .whatsapp-btn:hover { background-color: #128c7e; }
 
-          /* ✅ Tooltips (desktop only) */
-          .tooltip-container {
-            position: relative;
-            display: inline-block;
-          }
+          /* Tooltips (desktop only) */
+          .tooltip-container { position: relative; display: inline-block; }
           .tooltip-text {
             visibility: hidden;
             background-color: #000;
@@ -282,13 +260,7 @@ export default function Footer() {
             opacity: 1;
             transform: translateY(-50%) translateX(0);
           }
-
-          /* ✅ Mobile: hide tooltips, only icons */
-          @media (max-width: 768px) {
-            .tooltip-text {
-              display: none !important;
-            }
-          }
+          @media (max-width: 768px) { .tooltip-text { display: none !important; } }
         `}
       </style>
     </footer>

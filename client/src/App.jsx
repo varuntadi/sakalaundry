@@ -26,6 +26,7 @@ import Prices from "./pages/Prices.jsx";
 
 const Orders = React.lazy(() => import("./pages/Orders.jsx"));
 const MyOrders = React.lazy(() => import("./pages/MyOrders.jsx"));
+const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy.jsx")); // ✅ only route is in footer
 import Admin from "./pages/Admin.jsx";
 
 /* COMPONENTS / GUARDS */
@@ -175,6 +176,18 @@ function AppShell() {
                     </div>
                   </Page>
                 </Protected>
+              }
+            />
+
+            {/* ✅ Privacy Policy: reachable only from footer */}
+            <Route
+              path="/privacy-policy"
+              element={
+                <Page>
+                  <Suspense fallback={<div className="card">Loading…</div>}>
+                    <PrivacyPolicy />
+                  </Suspense>
+                </Page>
               }
             />
 
